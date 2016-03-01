@@ -1140,7 +1140,10 @@ static void dvb_input_detach(struct ddb_input *input)
 			dvb_unregister_frontend(dvb->fe);
 		/* fallthrough */
 	case 0x30:
-		dvb_frontend_detach(dvb->fe);
+		if (dvb->fe2)
+			dvb_frontend_detach(dvb->fe2);
+		if (dvb->fe)
+			dvb_frontend_detach(dvb->fe);
 		dvb->fe = dvb->fe2 = NULL;
 		/* fallthrough */
 	case 0x20:
