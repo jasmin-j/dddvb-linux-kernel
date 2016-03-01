@@ -105,15 +105,6 @@ config DVB_STV0367DD
 
 	  Say Y when you want to support this frontend.
 
-config DVB_TDA18212DD
-	tristate "NXP TDA18212 silicon tuner (DD)"
-	depends on DVB_CORE && I2C
-	default m if !MEDIA_SUBDRV_AUTOSELECT
-	help
-	  NXP TDA18212 silicon tuner (Digital Devices driver).
-
-	  Say Y when you want to support this tuner.
-
 config DVB_CXD2843
 	tristate "Sony CXD2843 DVB-C/T demodulator family"
 	depends on DVB_CORE && I2C
