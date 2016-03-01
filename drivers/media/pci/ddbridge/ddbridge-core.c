@@ -1069,46 +1069,49 @@ static int tuner_attach_tda18271(struct ddb_input *input)
 	return 0;
 }
 
-static int tuner_attach_tda18212dd(struct ddb_input *input)
-{
-	struct i2c_adapter *i2c = &input->port->i2c->adap;
-	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-	struct dvb_frontend *fe;
-
-	fe = dvb_attach(tda18212dd_attach, dvb->fe, i2c,
-			(input->nr & 1) ? 0x63 : 0x60);
-	if (!fe) {
-		pr_err("No TDA18212 found!\n");
-		return -ENODEV;
-	}
-	return 0;
-}
-
-#ifdef CONFIG_DVB_TDA18212
-struct tda18212_config tda18212_0 = {
-	.i2c_address = 0x60,
-};
-
-struct tda18212_config tda18212_1 = {
-	.i2c_address = 0x63,
-};
-
 static int tuner_attach_tda18212(struct ddb_input *input)
 {
-	struct i2c_adapter *i2c = &input->port->i2c->adap;
+	struct i2c_adapter *adapter = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-	struct dvb_frontend *fe;
-	struct tda18212_config *cfg;
+	struct i2c_client *client;
+	struct tda18212_config config = {
+		.fe = dvb->fe,
+		.if_dvbt_6 = 3550,
+		.if_dvbt_7 = 3700,
+		.if_dvbt_8 = 4150,
+		.if_dvbt2_6 = 3250,
+		.if_dvbt2_7 = 4000,
+		.if_dvbt2_8 = 4000,
+		.if_dvbc = 5000,
+	};
+	struct i2c_board_info board_info = {
+		.type = "tda18212",
+		.platform_data = &config,
+	};
 
-	cfg = (input->nr & 1) ? &tda18212_1 : &tda18212_0;
-	fe = dvb_attach(tda18212_attach, dvb->fe, i2c, cfg);
-	if (!fe) {
-		pr_err("No TDA18212 found!\n");
-		return -ENODEV;
+	if (input->nr & 1)
+		board_info.addr = 0x63;
+	else
+		board_info.addr = 0x60;
+
+	request_module(board_info.type);
+
+	client = i2c_new_device(adapter, &board_info);
+	if (client == NULL || client->dev.driver == NULL)
+		goto err;
+
+	if (!try_module_get(client->dev.driver->owner)) {
+		i2c_unregister_device(client);
+		goto err;
 	}
+
+	dvb->i2c_client[0] = client;
+
+	return 0;
+err:
+	dev_notice(input->port->dev->dev, "TDA18212 tuner not found. Device is not fully operational.\n");
 	return 0;
 }
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1719,9 +1722,15 @@ static void dvb_input_detach(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_demux *dvbdemux = &dvb->demux;
+	struct i2c_client *client;
 
 	switch (dvb->attached) {
 	case 0x31:
+		client = dvb->i2c_client[0];
+		if (client) {
+			module_put(client->dev.driver->owner);
+			i2c_unregister_device(client);
+		}
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
 		if (dvb->fe)
@@ -1937,7 +1946,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT_ST:
 		if (demod_attach_stv0367dd(input) < 0)
 			return -ENODEV;
-		if (tuner_attach_tda18212dd(input) < 0)
+		if (tuner_attach_tda18212(input) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBCT2_SONY_P:
@@ -1952,7 +1961,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_ISDBT_SONY:
 		if (demod_attach_cxd2843(input, par) < 0)
 			return -ENODEV;
-		if (tuner_attach_tda18212dd(input) < 0)
+		if (tuner_attach_tda18212(input) < 0)
 			return -ENODEV;
 		break;
 	default:

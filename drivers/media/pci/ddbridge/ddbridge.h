@@ -77,7 +77,7 @@
 #include "lnbh24.h"
 #include "drxk.h"
 #include "stv0367dd.h"
-#include "tda18212dd.h"
+#include "tda18212.h"
 #include "cxd2843.h"
 #include "cxd2099.h"
 #include "stv0910.h"
@@ -204,6 +204,7 @@ struct ddb_dvb {
 	struct dvb_adapter    *adap;
 	int                    adap_registered;
 	struct dvb_device     *dev;
+	struct i2c_client     *i2c_client[1];
 	struct dvb_frontend   *fe;
 	struct dvb_frontend   *fe2;
 	struct dmxdev          dmxdev;
