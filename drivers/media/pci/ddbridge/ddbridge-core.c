@@ -1028,23 +1028,41 @@ static int demod_attach_cxd2843(struct ddb_input *input, int par)
 	return 0;
 }
 
-static int demod_attach_stv0367dd(struct ddb_input *input)
+static int demod_attach_stv0367(struct ddb_input *input)
 {
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_frontend *fe;
-	struct stv0367_cfg cfg = { .cont_clock = 0 };
-	
-	cfg.adr = 0x1f - (input->nr & 1);
-	if (input->port->dev->link[input->port->lnr].info->con_clock)
-		cfg.cont_clock = 1;
-	fe = dvb->fe = dvb_attach(stv0367_attach, i2c,
-				  &cfg,
-				  &dvb->fe2);
+
+	struct stv0367_config cfg = {
+		.xtal = 16000000,
+		.if_khz = 4500,
+		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
+		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
+		.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
+	};
+
+	cfg.demod_address = 0x1f - (input->nr & 1);
+
+	fe = dvb->fe = dvb_attach(stv0367cab_attach,
+		&cfg, i2c);
+
 	if (!dvb->fe) {
-		pr_err("No stv0367 found!\n");
+		pr_err("No stv0367cab found!\n");
 		return -ENODEV;
 	}
+
+	fe = dvb->fe2 = dvb_attach(stv0367ter_attach,
+		&cfg, i2c);
+
+	if (!dvb->fe2) {
+		dvb_frontend_detach(dvb->fe);
+		dvb->fe = NULL;
+
+		pr_err("No stv0367ter found!\n");
+		return -ENODEV;
+	}
+
 	fe->sec_priv = input;
 	dvb->i2c_gate_ctrl = fe->ops.i2c_gate_ctrl;
 	fe->ops.i2c_gate_ctrl = locked_gate_ctrl;
@@ -1944,7 +1962,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBCT_ST:
-		if (demod_attach_stv0367dd(input) < 0)
+		if (demod_attach_stv0367(input) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212(input) < 0)
 			return -ENODEV;
