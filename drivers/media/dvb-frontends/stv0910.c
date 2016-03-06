@@ -315,11 +315,13 @@ struct SLookupSNTable S2_SN_Lookup[] = {
 };
 
 /*********************************************************************
-Tracking carrier loop carrier QPSK 1/4 to 8PSK 9/10 long Frame
-*********************************************************************/
+ * Tracking carrier loop carrier QPSK 1/4 to 8PSK 9/10 long Frame
+ *********************************************************************/
 static u8 S2CarLoop[] =	{
 	/* Modcod  2MPon 2MPoff 5MPon 5MPoff 10MPon 10MPoff
-	   20MPon 20MPoff 30MPon 30MPoff*/
+	 * 20MPon 20MPoff 30MPon 30MPoff
+	 */
+
 	/* FE_QPSK_14  */
 	0x0C,  0x3C,  0x0B,  0x3C,  0x2A,  0x2C,  0x2A,  0x1C,  0x3A,  0x3B,
 	/* FE_QPSK_13  */
@@ -356,10 +358,13 @@ static u8 S2CarLoop[] =	{
 	0x0C,  0x1C,  0x0C,  0x3B,  0x2B,  0x1B,  0x3A,  0x0B,  0x2A,  0x2A,
 
 	/**********************************************************************
-	Tracking carrier loop carrier 16APSK 2/3 to 32APSK 9/10 long Frame
-	**********************************************************************/
-	/*Modcod 2MPon  2MPoff 5MPon 5MPoff 10MPon 10MPoff 20MPon
-	  20MPoff 30MPon 30MPoff*/
+	 * Tracking carrier loop carrier 16APSK 2/3 to 32APSK 9/10 long Frame
+	 **********************************************************************/
+
+	/* Modcod 2MPon  2MPoff 5MPon 5MPoff 10MPon 10MPoff 20MPon
+	 * 20MPoff 30MPon 30MPoff
+	 */
+
 	/* FE_16APSK_23  */
 	0x0A,  0x0A,  0x0A,  0x0A,  0x1A,  0x0A,  0x39,  0x0A,  0x29,  0x0A,
 	/* FE_16APSK_34  */
@@ -388,6 +393,7 @@ static u8 get_optim_cloop(struct stv *state,
 			  enum FE_STV0910_ModCod ModCod, u32 Pilots)
 {
 	int i = 0;
+
 	if (ModCod >= FE_32APSK_910)
 		i = ((int)FE_32APSK_910 - (int)FE_QPSK_14) * 10;
 	else if (ModCod >= FE_QPSK_14)
@@ -714,7 +720,6 @@ static int GetBitErrorRate(struct stv *state, u32 *BERNumerator,
 	switch (state->ReceiveMode) {
 	case Mode_DVBS:
 		return GetBitErrorRateS(state, BERNumerator, BERDenominator);
-		break;
 	case Mode_DVBS2:
 		return GetBitErrorRateS2(state, BERNumerator, BERDenominator);
 	default:
@@ -956,27 +961,27 @@ static int probe(struct stv *state)
 	set_mclock(state, 135000000);
 
 	/* TS output */
-	write_reg(state, RSTV0910_P1_TSCFGH , state->tscfgh | 0x01);
-	write_reg(state, RSTV0910_P1_TSCFGH , state->tscfgh);
-	write_reg(state, RSTV0910_P1_TSCFGM , 0xC0);  /* Manual speed */
-	write_reg(state, RSTV0910_P1_TSCFGL , 0x20);
+	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh | 0x01);
+	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh);
+	write_reg(state, RSTV0910_P1_TSCFGM, 0xC0);  /* Manual speed */
+	write_reg(state, RSTV0910_P1_TSCFGL, 0x20);
 
 	/* Speed = 67.5 MHz */
-	write_reg(state, RSTV0910_P1_TSSPEED , state->tsspeed);
+	write_reg(state, RSTV0910_P1_TSSPEED, state->tsspeed);
 
-	write_reg(state, RSTV0910_P2_TSCFGH , state->tscfgh | 0x01);
-	write_reg(state, RSTV0910_P2_TSCFGH , state->tscfgh);
-	write_reg(state, RSTV0910_P2_TSCFGM , 0xC0);  /* Manual speed */
-	write_reg(state, RSTV0910_P2_TSCFGL , 0x20);
+	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh | 0x01);
+	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh);
+	write_reg(state, RSTV0910_P2_TSCFGM, 0xC0);  /* Manual speed */
+	write_reg(state, RSTV0910_P2_TSCFGL, 0x20);
 
 	/* Speed = 67.5 MHz */
-	write_reg(state, RSTV0910_P2_TSSPEED , state->tsspeed);
+	write_reg(state, RSTV0910_P2_TSSPEED, state->tsspeed);
 
 	/* Reset stream merger */
-	write_reg(state, RSTV0910_P1_TSCFGH , state->tscfgh | 0x01);
-	write_reg(state, RSTV0910_P2_TSCFGH , state->tscfgh | 0x01);
-	write_reg(state, RSTV0910_P1_TSCFGH , state->tscfgh);
-	write_reg(state, RSTV0910_P2_TSCFGH , state->tscfgh);
+	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh | 0x01);
+	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh | 0x01);
+	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh);
+	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh);
 
 	write_reg(state, RSTV0910_P1_I2CRPT, state->i2crpt);
 	write_reg(state, RSTV0910_P2_I2CRPT, state->i2crpt);
@@ -1078,12 +1083,14 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (DmdState & 0x40) {
 		if (state->ReceiveMode == Mode_DVBS2) {
 			u8 PDELStatus;
+
 			read_reg(state,
 				 RSTV0910_P2_PDELSTATUS1 + state->regoff,
 				 &PDELStatus);
 			FECLock = (PDELStatus & 0x02) != 0;
 		} else {
 			u8 VStatus;
+
 			read_reg(state,
 				 RSTV0910_P2_VSTATUSVIT + state->regoff,
 				 &VStatus);
@@ -1104,7 +1111,8 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 		if (state->ReceiveMode == Mode_DVBS2) {
 			/* FSTV0910_P2_MANUALSX_ROLLOFF,
-			   FSTV0910_P2_MANUALS2_ROLLOFF = 0 */
+			 * FSTV0910_P2_MANUALS2_ROLLOFF = 0
+			 */
 			state->DEMOD &= ~0x84;
 			write_reg(state, RSTV0910_P2_DEMOD + state->regoff,
 				  state->DEMOD);
@@ -1135,8 +1143,9 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 		}
 		/*Reset the Total packet counter */
 		write_reg(state, RSTV0910_P2_FBERCPT4 + state->regoff, 0x00);
-		/*Reset the packet Error counter2 (and Set it to
-		  infinit error count mode )*/
+		/* Reset the packet Error counter2 (and Set it to
+		 * infinit error count mode )
+		 */
 		write_reg(state, RSTV0910_P2_ERRCTRL2 + state->regoff, 0xc1);
 
 		TrackingOptimization(state);
@@ -1199,7 +1208,7 @@ static int wait_dis(struct stv *state, u8 flag, u8 val)
 		read_reg(state, RSTV0910_P1_DISTXSTATUS + offs, &stat);
 		if ((stat & flag) == val)
 			return 0;
-		msleep(10);
+		usleep_range(10000, 11000);
 	}
 	return -1;
 }
@@ -1211,8 +1220,9 @@ static int send_master_cmd(struct dvb_frontend *fe,
 	u16 offs = state->nr ? 0x40 : 0;
 	int i;
 
-	/*pr_info("master_cmd %02x %02x %02x %02x\n",
-	  cmd->msg[0],  cmd->msg[1],  cmd->msg[2],  cmd->msg[3]);*/
+	/* pr_info("master_cmd %02x %02x %02x %02x\n",
+	 *  cmd->msg[0],  cmd->msg[1],  cmd->msg[2],  cmd->msg[3]);
+	 */
 	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3E);
 	for (i = 0; i < cmd->msg_len; i++) {
 		wait_dis(state, 0x40, 0x00);
@@ -1231,23 +1241,6 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 
 static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
-#if 0
-	struct stv *state = fe->demodulator_priv;
-	u16 offs = state->nr ? 0x40 : 0;
-	u8 value;
-
-	if (burst == SEC_MINI_A) {
-		write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3F);
-		value = 0x00;
-	} else {
-		write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3E);
-		value = 0xFF;
-	}
-	wait_dis(state, 0x40, 0x00);
-	write_reg(state, RSTV0910_P1_DISTXFIFO + offs, value);
-	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3A);
-	wait_dis(state, 0x20, 0x20);
-#endif
 	return 0;
 }
 
@@ -1277,7 +1270,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	u32 n, d;
 
 	GetBitErrorRate(state, &n, &d);
-	if (d) 
+	if (d)
 		*ber = n / d;
 	else
 		*ber = 0;
