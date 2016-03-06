@@ -2075,7 +2075,7 @@ static int ddb_port_attach(struct ddb_port *port)
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
 					  &dvbdev_ci, (void *) port->output,
-					  DVB_DEVICE_SEC);
+					  DVB_DEVICE_CI);
 		break;
 	default:
 		break;
