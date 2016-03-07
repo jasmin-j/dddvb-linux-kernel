@@ -1151,10 +1151,12 @@ static int set_parameters(struct dvb_frontend *fe)
 	struct cxd_state *state = fe->demodulator_priv;
 	u32 IF;
 
-	/* TODO: map DVB-C2 delsys to OM_DVBC2 */
 	switch (fe->dtv_property_cache.delivery_system) {
 	case SYS_DVBC_ANNEX_A:
 		state->omode = OM_DVBC;
+		break;
+	case SYS_DVBC2:
+		state->omode = OM_DVBC2;
 		break;
 	case SYS_DVBT:
 		state->omode = OM_DVBT;
@@ -1848,8 +1850,7 @@ static int get_frontend(struct dvb_frontend *fe)
 }
 
 static struct dvb_frontend_ops common_ops_2843 = {
-	/* TODO: add DVB-C2 delivery system */
-	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2 },
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2 },
 	.info = {
 		.name = "CXD2843 DVB-C/C2 DVB-T/T2",
 		.frequency_stepsize = 166667,	/* DVB-T only */

@@ -882,7 +882,8 @@ static int set_params(struct dvb_frontend *fe)
 	/*pr_info("tuner bw=%u  freq=%u\n", bw, state->m_Frequency);*/
 	if (p->delivery_system == SYS_DVBT ||
 	    p->delivery_system == SYS_DVBT2 ||
-	    p->delivery_system == SYS_ISDBT) {
+	    p->delivery_system == SYS_ISDBT ||
+	    p->delivery_system == SYS_DVBC2) {
 		switch (bw) {
 		case 6:
 			Standard = HF_DVBT_6MHZ;
