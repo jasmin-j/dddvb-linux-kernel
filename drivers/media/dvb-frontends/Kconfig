@@ -70,15 +70,6 @@ config DVB_DRXK
 
 	  Say Y when you want to support this frontend.
 
-config DVB_TDA18212DD
-	tristate "NXP TDA18212 silicon tuner (DD)"
-	depends on DVB_CORE && I2C
-	default m if !MEDIA_SUBDRV_AUTOSELECT
-	help
-	  NXP TDA18212 silicon tuner (Digital Devices driver).
-
-	  Say Y when you want to support this tuner.
-
 config DVB_TDA18271C2DD
 	tristate "NXP TDA18271C2 silicon tuner"
 	depends on DVB_CORE && I2C
