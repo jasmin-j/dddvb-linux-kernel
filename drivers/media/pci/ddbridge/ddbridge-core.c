@@ -848,18 +848,48 @@ static int tuner_attach_tda18271(struct ddb_input *input)
 	return 0;
 }
 
-static int tuner_attach_tda18212dd(struct ddb_input *input)
+static int tuner_attach_tda18212(struct ddb_input *input)
 {
-	struct i2c_adapter *i2c = &input->port->i2c->adap;
+	struct i2c_adapter *adapter = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-	struct dvb_frontend *fe;
+	struct i2c_client *client;
+	struct tda18212_config config = {
+		.fe = dvb->fe,
+		.if_dvbt_6 = 3550,
+		.if_dvbt_7 = 3700,
+		.if_dvbt_8 = 4150,
+		.if_dvbt2_6 = 3250,
+		.if_dvbt2_7 = 4000,
+		.if_dvbt2_8 = 4000,
+		.if_dvbc = 5000,
+		.retry_init = 1,
+	};
+	struct i2c_board_info board_info = {
+		.type = "tda18212",
+		.platform_data = &config,
+	};
 
-	fe = dvb_attach(tda18212dd_attach, dvb->fe, i2c,
-			(input->nr & 1) ? 0x63 : 0x60);
-	if (!fe) {
-		pr_err("No TDA18212 found!\n");
-		return -ENODEV;
+	if (input->nr & 1)
+		board_info.addr = 0x63;
+	else
+		board_info.addr = 0x60;
+
+	request_module(board_info.type);
+
+	client = i2c_new_device(adapter, &board_info);
+	if (client == NULL || client->dev.driver == NULL)
+		goto err;
+
+	if (!try_module_get(client->dev.driver->owner)) {
+		i2c_unregister_device(client);
+		goto err;
 	}
+
+	dvb->i2c_client[0] = client;
+
+	return 0;
+err:
+	dev_notice(input->port->dev->dev, "TDA18212 tuner not found. Device is not fully operational.\n");
 	return 0;
 }
 
@@ -1340,7 +1370,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT_ST:
 		if (demod_attach_stv0367dd(input) < 0)
 			return -ENODEV;
-		if (tuner_attach_tda18212dd(input) < 0)
+		if (tuner_attach_tda18212(input) < 0)
 		{
 			if(dvb->fe2)
 				dvb_frontend_detach(dvb->fe2);
@@ -1362,7 +1392,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_ISDBT_SONY:
 		if (demod_attach_cxd2843(input, par) < 0)
 			return -ENODEV;
-		if (tuner_attach_tda18212dd(input) < 0)
+		if (tuner_attach_tda18212(input) < 0)
 		{
 			if(dvb->fe2)
 				dvb_frontend_detach(dvb->fe2);

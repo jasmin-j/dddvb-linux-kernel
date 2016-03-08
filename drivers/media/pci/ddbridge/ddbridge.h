@@ -75,7 +75,7 @@
 #include "lnbh24.h"
 #include "drxk.h"
 #include "stv0367dd.h"
-#include "tda18212dd.h"
+#include "tda18212.h"
 #include "cxd2843.h"
 #include "cxd2099.h"
 #include "stv0910.h"
