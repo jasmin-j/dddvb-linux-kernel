@@ -1341,7 +1341,13 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (demod_attach_stv0367dd(input) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212dd(input) < 0)
+		{
+			if(dvb->fe2)
+				dvb_frontend_detach(dvb->fe2);
+			if(dvb->fe)
+				dvb_frontend_detach(dvb->fe);
 			return -ENODEV;
+		}
 		break;
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
@@ -1357,7 +1363,13 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (demod_attach_cxd2843(input, par) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212dd(input) < 0)
+		{
+			if(dvb->fe2)
+				dvb_frontend_detach(dvb->fe2);
+			if(dvb->fe)
+				dvb_frontend_detach(dvb->fe);
 			return -ENODEV;
+		}
 		break;
 	default:
 		return 0;
