@@ -37,6 +37,12 @@ struct tda18212_config {
 	u16 if_atsc_qam;
 
 	/*
+	 * flag to retry tuner init on failure
+	 * (required by some demod/tuner combos on cold start
+	 */
+	u8 retry_init;
+
+	/*
 	 * pointer to DVB frontend
 	 */
 	struct dvb_frontend *fe;
