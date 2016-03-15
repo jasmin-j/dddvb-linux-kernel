@@ -948,10 +948,9 @@ static int demod_attach_stv0367(struct ddb_input *input)
 {
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-	struct dvb_frontend *fe, *fe2;
 
 	/* attach DVB-T frontend */
-	fe = dvb->fe = dvb_attach(stv0367ter_attach,
+	dvb->fe = dvb_attach(stv0367ter_attach,
 		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
 
 	if (!dvb->fe) {
@@ -960,7 +959,7 @@ static int demod_attach_stv0367(struct ddb_input *input)
 	}
 
 	/* attach DVB-C frontend */
-	fe2 = dvb->fe2 = dvb_attach(stv0367cab_attach,
+	dvb->fe2 = dvb_attach(stv0367cab_attach,
 		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
 
 	if (!dvb->fe2) {
@@ -972,9 +971,7 @@ static int demod_attach_stv0367(struct ddb_input *input)
 		return -ENODEV;
 	}
 
-	fe->sec_priv = fe2->sec_priv = input;
-	dvb->i2c_gate_ctrl = fe->ops.i2c_gate_ctrl = fe2->ops.i2c_gate_ctrl;
-	fe->ops.i2c_gate_ctrl = fe2->ops.i2c_gate_ctrl = locked_gate_ctrl;
+	dvb->fe->sec_priv = dvb->fe2->sec_priv = input;
 
 	return 0;
 }
