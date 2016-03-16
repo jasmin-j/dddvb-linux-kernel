@@ -949,29 +949,17 @@ static int demod_attach_stv0367(struct ddb_input *input)
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 
-	/* attach DVB-T frontend */
-	dvb->fe = dvb_attach(stv0367ter_attach,
+	/* attach DVB-C frontend */
+	/* use stv0367ter_attach for DVB-T mode */
+	dvb->fe = dvb_attach(stv0367cab_attach,
 		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
 
 	if (!dvb->fe) {
-		pr_err("stv0367ter_attach failed (not found?)\n");
-		return -ENODEV;
-	}
-
-	/* attach DVB-C frontend */
-	dvb->fe2 = dvb_attach(stv0367cab_attach,
-		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
-
-	if (!dvb->fe2) {
-		/* free first frontend if second failed */
-		dvb_frontend_detach(dvb->fe);
-		dvb->fe = NULL;
-
 		pr_err("stv0367cab_attach failed (not found?)\n");
 		return -ENODEV;
 	}
 
-	dvb->fe->sec_priv = dvb->fe2->sec_priv = input;
+	dvb->fe->sec_priv = input;
 
 	return 0;
 }
