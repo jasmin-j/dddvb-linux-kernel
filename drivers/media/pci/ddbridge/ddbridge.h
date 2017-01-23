@@ -71,7 +71,7 @@
 #include "stv0367.h"
 #include "stv0367_priv.h"
 #include "tda18212.h"
-#include "cxd2843.h"
+#include "cxd2841er.h"
 #include "cxd2099.h"
 #include "stv0910.h"
 #include "stv6111.h"
