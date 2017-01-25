@@ -34,6 +34,7 @@ struct cxd2841er_config {
 	u8	i2c_addr;
 	enum cxd2841er_xtal	xtal;
 	u8	use_i2c_gatectrl;
+	u8	ts_serial;
 };
 
 #if IS_REACHABLE(CONFIG_DVB_CXD2841ER)
