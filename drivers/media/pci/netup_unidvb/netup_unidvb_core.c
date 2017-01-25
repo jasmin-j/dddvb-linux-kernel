@@ -123,7 +123,8 @@ static void netup_unidvb_queue_cleanup(struct netup_dma *dma);
 static struct cxd2841er_config demod_config = {
 	.i2c_addr = 0xc8,
 	.xtal = SONY_XTAL_24000,
-	.use_i2c_gatectrl = 1
+	.use_i2c_gatectrl = 1,
+	.ts_serial = 0
 };
 
 static struct horus3a_config horus3a_conf = {
