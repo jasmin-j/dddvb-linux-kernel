@@ -916,6 +916,8 @@ static int demod_attach_sonycxd(struct ddb_input *input, int par, int osc24)
 	cfg.use_i2c_gatectrl = 0;
 	cfg.ts_serial = par ? 0 : 1;
 
+	pr_info("cxd cfg.ts_serial = %i\n", cfg.ts_serial);
+
 	fe = dvb->fe = dvb_attach(cxd2841er_attach_t_c, &cfg, i2c);
 
 	if (!dvb->fe) {
