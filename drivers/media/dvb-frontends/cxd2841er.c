@@ -3253,11 +3253,11 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		dev_dbg(&priv->i2c->dev, "%s(): tune failed\n", __func__);
 		goto done;
 	}
-	if (fe->ops.i2c_gate_ctrl)
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
 	if (fe->ops.tuner_ops.set_params)
 		fe->ops.tuner_ops.set_params(fe);
-	if (fe->ops.i2c_gate_ctrl)
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
 	cxd2841er_tune_done(priv);
 	timeout = ((3000000 + (symbol_rate - 1)) / symbol_rate) + 150;
@@ -3378,11 +3378,11 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 	}
 	if (ret)
 		goto done;
-	if (fe->ops.i2c_gate_ctrl)
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
 	if (fe->ops.tuner_ops.set_params)
 		fe->ops.tuner_ops.set_params(fe);
-	if (fe->ops.i2c_gate_ctrl)
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
 	cxd2841er_tune_done(priv);
 	timeout = 2500;
