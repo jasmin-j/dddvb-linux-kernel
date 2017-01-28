@@ -64,6 +64,7 @@ struct cxd2841er_priv {
 	enum cxd2841er_state		state;
 	u8				system;
 	enum cxd2841er_xtal		xtal;
+	u8				use_i2c_gatectrl;
 	enum fe_caps caps;
 };
 
@@ -3252,11 +3253,11 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		dev_dbg(&priv->i2c->dev, "%s(): tune failed\n", __func__);
 		goto done;
 	}
-	if (fe->ops.i2c_gate_ctrl)
+	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
 	if (fe->ops.tuner_ops.set_params)
 		fe->ops.tuner_ops.set_params(fe);
-	if (fe->ops.i2c_gate_ctrl)
+	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
 	cxd2841er_tune_done(priv);
 	timeout = ((3000000 + (symbol_rate - 1)) / symbol_rate) + 150;
@@ -3377,11 +3378,11 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 	}
 	if (ret)
 		goto done;
-	if (fe->ops.i2c_gate_ctrl)
+	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
 	if (fe->ops.tuner_ops.set_params)
 		fe->ops.tuner_ops.set_params(fe);
-	if (fe->ops.i2c_gate_ctrl)
+	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
 	cxd2841er_tune_done(priv);
 	timeout = 2500;
@@ -3738,6 +3739,7 @@ static struct dvb_frontend *cxd2841er_attach(struct cxd2841er_config *cfg,
 	priv->i2c_addr_slvx = (cfg->i2c_addr + 4) >> 1;
 	priv->i2c_addr_slvt = (cfg->i2c_addr) >> 1;
 	priv->xtal = cfg->xtal;
+	priv->use_i2c_gatectrl = (cfg->use_i2c_gatectrl ? 1 : 0);
 	priv->frontend.demodulator_priv = priv;
 	dev_info(&priv->i2c->dev,
 		"%s(): I2C adapter %p SLVX addr %x SLVT addr %x\n",
