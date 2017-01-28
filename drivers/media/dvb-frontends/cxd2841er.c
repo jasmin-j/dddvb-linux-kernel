@@ -66,6 +66,7 @@ struct cxd2841er_priv {
 	enum cxd2841er_xtal		xtal;
 	u8				use_i2c_gatectrl;
 	u8				ts_serial;
+	u8				use_ascot;
 	enum fe_caps caps;
 };
 
@@ -877,6 +878,12 @@ static void cxd2841er_set_ts_clock_mode(struct cxd2841er_priv *priv,
 	/* Set SLV-T Bank : 0x00 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x00);
 
+	cxd2841er_read_reg(priv, I2C_SLVT, 0xc4, &serial_ts);
+	cxd2841er_read_reg(priv, I2C_SLVT, 0xd3, &ts_rate_ctrl_off);
+	cxd2841er_read_reg(priv, I2C_SLVT, 0xde, &ts_in_off);
+	dev_dbg(&priv->i2c->dev, "%s(): ser_ts=0x%02x rate_ctrl_off=0x%02x in_off=0x%02x\n",
+		__func__, serial_ts, ts_rate_ctrl_off, ts_in_off);
+
 	/* Set up serial/parallel TS mode */
 
 	/*
@@ -889,12 +896,6 @@ static void cxd2841er_set_ts_clock_mode(struct cxd2841er_priv *priv,
 	 * <SLV-T>  00h     D1h     [1:0]  0'b01      OSERDUTYMODE
 	 */
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xd1, (priv->ts_serial ? 0x01 : 0x00), 0x03);
-
-	cxd2841er_read_reg(priv, I2C_SLVT, 0xc4, &serial_ts);
-	cxd2841er_read_reg(priv, I2C_SLVT, 0xd3, &ts_rate_ctrl_off);
-	cxd2841er_read_reg(priv, I2C_SLVT, 0xde, &ts_in_off);
-	dev_dbg(&priv->i2c->dev, "%s(): ser_ts=0x%02x rate_ctrl_off=0x%02x in_off=0x%02x\n",
-		__func__, serial_ts, ts_rate_ctrl_off, ts_in_off);
 
 	/*
 	 * slave    Bank    Addr    Bit    default    Name
@@ -2253,8 +2254,9 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef8bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.80);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2281,8 +2283,9 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef7bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.20);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2309,8 +2312,9 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef6bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2337,8 +2341,9 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef5bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2365,8 +2370,9 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef17bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef17bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.50);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2388,6 +2394,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 {
 	u8 data[MAX_WRITE_REGSIZE];
 	u32 iffreq;
+	u32 tunerfreq = 0;
+
 	u8 nominalRate8bw[3][5] = {
 		/* TRCG Nominal Rate [37:0] */
 		{0x11, 0xF0, 0x00, 0x00, 0x00}, /* 20.5MHz XTal */
@@ -2446,6 +2454,9 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 			0x00, 0xE6, 0x23, 0xA4}  /* 41MHz XTal   */
 	};
 
+	if (priv->frontend.ops.tuner_ops.get_if_frequency)
+		priv->frontend.ops.tuner_ops.get_if_frequency(&priv->frontend, &tunerfreq);
+
 	/* Set SLV-T Bank : 0x13 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x13);
 	/* Echo performance optimization setting */
@@ -2464,10 +2475,11 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef8bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.80);
+		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.15);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2499,10 +2511,11 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef7bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.20);
+		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.0);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2534,8 +2547,9 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef6bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2569,8 +2583,9 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef5bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
@@ -2670,8 +2685,9 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate8bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef8bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef8bw[priv->xtal], 14);
 
 		/* IF freq setting */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.75);
@@ -2699,8 +2715,9 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate7bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef7bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef7bw[priv->xtal], 14);
 
 		/* IF freq setting */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.15);
@@ -2728,8 +2745,9 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate6bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
-				0xA6, itbCoef6bw[priv->xtal], 14);
+		if (priv->use_ascot)
+			cxd2841er_write_regs(priv, I2C_SLVT,
+					0xA6, itbCoef6bw[priv->xtal], 14);
 
 		/* IF freq setting */
 		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.55);
@@ -2886,8 +2904,8 @@ static int cxd2841er_sleep_tc_to_active_t(struct cxd2841er_priv *priv,
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x6a, 0x50);
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
-	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	/* ASCOT setting ON/OFF */
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, (priv->use_ascot ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x18 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x18);
 	/* Pre-RS BER moniter setting */
@@ -2965,7 +2983,7 @@ static int cxd2841er_sleep_tc_to_active_t2(struct cxd2841er_priv *priv,
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
 	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, (priv->use_ascot ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x20 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x20);
 	/* Acquisition optimization setting */
@@ -3103,7 +3121,7 @@ static int cxd2841er_sleep_tc_to_active_i(struct cxd2841er_priv *priv,
 	/* Enable ADC 4 */
 	cxd2841er_write_reg(priv, I2C_SLVX, 0x18, 0x00);
 	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, (priv->use_ascot ? 0x01 : 0x00), 0x01);
 	/* FEC Auto Recovery setting */
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0x30, 0x01, 0x01);
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0x31, 0x00, 0x01);
@@ -3188,7 +3206,7 @@ static int cxd2841er_sleep_tc_to_active_c(struct cxd2841er_priv *priv,
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
 	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, (priv->use_ascot ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x40 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x40);
 	/* Demod setting */
@@ -3250,6 +3268,16 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		__func__,
 		(p->delivery_system == SYS_DVBS ? "DVB-S" : "DVB-S2"),
 		 p->frequency, symbol_rate, priv->xtal);
+
+	if (!priv->use_ascot) {
+		if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 1);
+		if (fe->ops.tuner_ops.set_params)
+			fe->ops.tuner_ops.set_params(fe);
+		if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+	}
+
 	switch (priv->state) {
 	case STATE_SLEEP_S:
 		ret = cxd2841er_sleep_s_to_active_s(
@@ -3268,12 +3296,14 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		dev_dbg(&priv->i2c->dev, "%s(): tune failed\n", __func__);
 		goto done;
 	}
-	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	if (fe->ops.tuner_ops.set_params)
-		fe->ops.tuner_ops.set_params(fe);
-	if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
+	if (priv->use_ascot) {
+		if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 1);
+		if (fe->ops.tuner_ops.set_params)
+			fe->ops.tuner_ops.set_params(fe);
+		if (priv->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+	}
 	cxd2841er_tune_done(priv);
 	timeout = ((3000000 + (symbol_rate - 1)) / symbol_rate) + 150;
 	for (i = 0; i < timeout / CXD2841ER_DVBS_POLLING_INVL; i++) {
@@ -3726,7 +3756,17 @@ static int cxd2841er_init_tc(struct dvb_frontend *fe)
 	cxd2841er_write_reg(priv, I2C_SLVT, 0xcd, 0x50);
 	/* SONY_DEMOD_CONFIG_PARALLEL_SEL = 1 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x00);
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4, (priv->ts_serial ? 0x01 : 0x00), 0x80);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4, (priv->ts_serial ? 0x80 : 0x00), 0x98);
+
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc5, 0x01, 0x07);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xcb, 0x00, 0x01);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc6, 0x00, 0x1d);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc8, 0x01, 0x1d);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc9, 0x00, 0x1d);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0x83, 0x00, 0x07);
+	cxd2841er_write_reg(priv, I2C_SLVT, 0x84, 0x00);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xd3, 0x00, 0x01);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xde, 0x00, 0x01);
 
 	cxd2841er_init_stats(fe);
 
@@ -3755,7 +3795,8 @@ static struct dvb_frontend *cxd2841er_attach(struct cxd2841er_config *cfg,
 	priv->i2c_addr_slvt = (cfg->i2c_addr) >> 1;
 	priv->xtal = cfg->xtal;
 	priv->use_i2c_gatectrl = (cfg->use_i2c_gatectrl ? 1 : 0);
-	priv->ts_serial = cfg->ts_serial;
+	priv->ts_serial = (cfg->ts_serial ? 1 : 0);
+	priv->use_ascot = (cfg->use_ascot ? 1 : 0);
 	priv->frontend.demodulator_priv = priv;
 	dev_info(&priv->i2c->dev,
 		"%s(): I2C adapter %p SLVX addr %x SLVT addr %x\n",
