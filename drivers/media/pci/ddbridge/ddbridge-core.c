@@ -915,6 +915,7 @@ static int demod_attach_sonycxd(struct ddb_input *input, int par, int osc24)
 	cfg.xtal = osc24 ? SONY_XTAL_24000 : SONY_XTAL_20500;
 	cfg.use_i2c_gatectrl = 0;
 	cfg.ts_serial = par ? 0 : 1;
+	cfg.use_ascot = 0;
 
 	pr_info("cxd cfg.ts_serial = %i\n", cfg.ts_serial);
 
