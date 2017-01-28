@@ -115,6 +115,7 @@ static int lnbh25_set_voltage(struct dvb_frontend *fe,
 		vsel = "18V";
 		break;
 	default:
+		dev_info(&priv->i2c->dev, "%s() called with invalid voltage %d\n", __func__, voltage);
 		return -EINVAL;
 	}
 	priv->config[1] = data1_reg;
@@ -123,8 +124,10 @@ static int lnbh25_set_voltage(struct dvb_frontend *fe,
 		__func__, vsel, priv->i2c_address,
 		priv->config[0], priv->config[1], priv->config[2]);
 	ret = i2c_transfer(priv->i2c, &msg, 1);
-	if (ret >= 0 && ret != 1)
+	if (ret >= 0 && ret != 1) {
+		dev_info(&priv->i2c->dev, "%s(): voltage setup i2c_transfer() returned with %d\n", __func__, ret);
 		ret = -EIO;
+	}
 	if (ret < 0) {
 		dev_err(&priv->i2c->dev, "%s(): I2C transfer error (%d)\n",
 			__func__, ret);
@@ -133,6 +136,7 @@ static int lnbh25_set_voltage(struct dvb_frontend *fe,
 	if (voltage != SEC_VOLTAGE_OFF) {
 		msleep(120);
 		ret = lnbh25_read_vmon(priv);
+		dev_info(&priv->i2c->dev, "%s(): read_vmon() returned with %d\n", __func__, ret);
 	} else {
 		msleep(20);
 		ret = 0;
