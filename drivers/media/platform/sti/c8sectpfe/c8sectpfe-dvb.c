@@ -89,6 +89,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 		.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
+		.use_i2c_gatectrl = 1,
 	}, {
 		.demod_address = 0x1d,
 		.xtal = 16000000,
@@ -96,6 +97,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 		.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
+		.use_i2c_gatectrl = 1,
 	}, {
 		.demod_address = 0x1e,
 		.xtal = 16000000,
@@ -103,6 +105,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 		.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
+		.use_i2c_gatectrl = 1,
 	},
 };
 
