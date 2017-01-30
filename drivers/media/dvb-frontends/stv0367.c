@@ -90,6 +90,7 @@ struct stv0367_state {
 	struct stv0367cab_state *cab_state;
 	/* DVB-T */
 	struct stv0367ter_state *ter_state;
+	u8 use_i2c_gatectrl;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -1193,10 +1194,10 @@ static int stv0367ter_set_frontend(struct dvb_frontend *fe)
 	stv0367ter_init(fe);
 
 	if (fe->ops.tuner_ops.set_params) {
-		if (fe->ops.i2c_gate_ctrl)
+		if (state->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 1);
 		fe->ops.tuner_ops.set_params(fe);
-		if (fe->ops.i2c_gate_ctrl)
+		if (state->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 0);
 	}
 
@@ -1686,6 +1687,7 @@ struct dvb_frontend *stv0367ter_attach(const struct stv0367_config *config,
 	state->fe.ops = stv0367ter_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
+	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -2484,10 +2486,10 @@ static int stv0367cab_set_frontend(struct dvb_frontend *fe)
 
 	/* Tuner Frequency Setting */
 	if (fe->ops.tuner_ops.set_params) {
-		if (fe->ops.i2c_gate_ctrl)
+		if (state->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 1);
 		fe->ops.tuner_ops.set_params(fe);
-		if (fe->ops.i2c_gate_ctrl)
+		if (state->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 0);
 	}
 
@@ -2800,6 +2802,7 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->fe.ops = stv0367cab_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
+	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
