@@ -85,6 +85,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 	{
 		.demod_address = 0x1c,
 		.xtal = 16000000,
+		.icspeed = STV0367_ICSPEED_53125,
 		.if_khz = 4500,
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
@@ -93,6 +94,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 	}, {
 		.demod_address = 0x1d,
 		.xtal = 16000000,
+		.icspeed = STV0367_ICSPEED_53125,
 		.if_khz = 4500,
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
@@ -101,6 +103,7 @@ static struct stv0367_config stv0367_tda18212_config[] = {
 	}, {
 		.demod_address = 0x1e,
 		.xtal = 16000000,
+		.icspeed = STV0367_ICSPEED_53125,
 		.if_khz = 4500,
 		.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 		.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,

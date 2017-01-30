@@ -844,6 +844,7 @@ static struct stv0367_config netup_stv0367_config[] = {
 	{
 		.demod_address = 0x1c,
 		.xtal = 27000000,
+		.icspeed = STV0367_ICSPEED_53125,
 		.if_khz = 4500,
 		.if_iq_mode = 0,
 		.ts_mode = 1,
@@ -852,6 +853,7 @@ static struct stv0367_config netup_stv0367_config[] = {
 	}, {
 		.demod_address = 0x1d,
 		.xtal = 27000000,
+		.icspeed = STV0367_ICSPEED_53125,
 		.if_khz = 4500,
 		.if_iq_mode = 0,
 		.ts_mode = 1,
