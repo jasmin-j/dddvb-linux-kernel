@@ -32,6 +32,7 @@ struct stv0367_config {
 	int if_iq_mode;
 	int ts_mode;
 	int clk_pol;
+	u8 use_i2c_gatectrl;
 };
 
 #if IS_REACHABLE(CONFIG_DVB_STV0367)
