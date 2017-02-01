@@ -2808,6 +2808,17 @@ static int stv0367cab_init(struct dvb_frontend *fe)
 		stv0367_writereg(state, def0367cab[i].addr,
 						def0367cab[i].value);
 
+	stv0367_writereg(state, R367TER_TOPCTRL, 0x00);
+
+	stv0367_writereg(state, R367TER_TSCFGH, 0x70);
+	stv0367_writereg(state, R367TER_TSCFGM, 0xC0);
+	stv0367_writereg(state, R367TER_TSCFGL, 0x20);
+	stv0367_writereg(state, R367TER_TSSPEED, 0x40);
+	stv0367_writereg(state, R367TER_TSCFGH, 0x71);
+	stv0367_writereg(state, R367TER_TSCFGH, 0x70);
+
+	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
+
 	stv0367_pll_setup(state);
 
 	switch (state->config->ts_mode) {
