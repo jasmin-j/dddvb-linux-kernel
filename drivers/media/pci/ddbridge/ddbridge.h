@@ -25,6 +25,14 @@
 #ifndef _DDBRIDGE_H_
 #define _DDBRIDGE_H_
 
+#include <linux/version.h>
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#define __devexit
+#define __devinit
+#define __devinitconst
+#endif
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -33,6 +41,7 @@
 #include <linux/poll.h>
 #include <linux/io.h>
 #include <linux/pci.h>
+/*#include <linux/pci_ids.h>*/
 #include <linux/timer.h>
 #include <linux/i2c.h>
 #include <linux/swab.h>
@@ -59,6 +68,7 @@
 #include <linux/device.h>
 #include <linux/io.h>
 
+#include "dvb_netstream.h"
 #include "dmxdev.h"
 #include "dvbdev.h"
 #include "dvb_demux.h"
@@ -73,7 +83,7 @@
 #include "lnbh24.h"
 #include "drxk.h"
 #include "stv0367dd.h"
-#include "tda18212.h"
+#include "tda18212dd.h"
 #include "cxd2843.h"
 #include "cxd2099.h"
 #include "stv0910.h"
@@ -97,10 +107,12 @@ struct ddb_regset {
 };
 
 struct ddb_regmap {
+	u32 irq_version;
 	u32 irq_base_i2c;
 	u32 irq_base_idma;
 	u32 irq_base_odma;
 	u32 irq_base_gtl;
+	u32 irq_base_rate;
 
 	struct ddb_regset *i2c;
 	struct ddb_regset *i2c_buf;
@@ -111,9 +123,13 @@ struct ddb_regmap {
 
 	struct ddb_regset *input;
 	struct ddb_regset *output;
-
+	
 	struct ddb_regset *channel;
+	//struct ddb_regset *ci;
+	//struct ddb_regset *pid_filter;
+	//struct ddb_regset *ns;
 	struct ddb_regset *gtl;
+	//struct ddb_regset *mdio;
 };
 
 struct ddb_ids {
@@ -129,12 +145,17 @@ struct ddb_ids {
 };
 
 struct ddb_info {
-	int   type;
+	u32   type;
 #define DDB_NONE         0
 #define DDB_OCTOPUS      1
 #define DDB_OCTOPUS_CI   2
+#define DDB_MOD          3
+#define DDB_OCTONET      4
 #define DDB_OCTOPUS_MAX  5
 #define DDB_OCTOPUS_MAX_CT  6
+#define DDB_OCTOPRO      7
+#define DDB_OCTOPRO_HDIN 8
+	u32   version;
 	char *name;
 	u32   i2c_mask;
 	u8    port_num;
@@ -144,22 +165,32 @@ struct ddb_info {
 	u8    temp_bus;
 	u32   board_control;
 	u32   board_control_2;
+	u8    ns_num;
 	u8    mdio_num;
 	u8    con_clock; /* use a continuous clock */
 	u8    ts_quirks;
-#define TS_QUIRK_SERIAL   1
-#define TS_QUIRK_REVERSED 2
-#define TS_QUIRK_ALT_OSC  8
-	u32   tempmon_irq;
+#define TS_QUIRK_SERIAL    1
+#define TS_QUIRK_REVERSED  2
+#define TS_QUIRK_NO_OUTPUT 4
+#define TS_QUIRK_ALT_OSC   8
+	u32 tempmon_irq;
 	struct ddb_regmap *regmap;
 };
 
 /* DMA_SIZE MUST be smaller than 256k and
- * MUST be divisible by 188 and 128 !!!
- */
+   MUST be divisible by 188 and 128 !!! */
 
 #define DMA_MAX_BUFS 32      /* hardware table limit */
 
+#ifdef SMALL_DMA_BUFS
+#define INPUT_DMA_BUFS 32
+#define INPUT_DMA_SIZE (128*47*5)
+#define INPUT_DMA_IRQ_DIV 1
+
+#define OUTPUT_DMA_BUFS 32
+#define OUTPUT_DMA_SIZE (128*47*5)
+#define OUTPUT_DMA_IRQ_DIV 1
+#else
 #define INPUT_DMA_BUFS 8
 #define INPUT_DMA_SIZE (128*47*21)
 #define INPUT_DMA_IRQ_DIV 1
@@ -167,6 +198,7 @@ struct ddb_info {
 #define OUTPUT_DMA_BUFS 8
 #define OUTPUT_DMA_SIZE (128*47*21)
 #define OUTPUT_DMA_IRQ_DIV 1
+#endif
 
 struct ddb;
 struct ddb_port;
@@ -201,27 +233,26 @@ struct ddb_dvb {
 	struct dvb_adapter    *adap;
 	int                    adap_registered;
 	struct dvb_device     *dev;
-	struct i2c_client     *i2c_client[1];
 	struct dvb_frontend   *fe;
 	struct dvb_frontend   *fe2;
 	struct dmxdev          dmxdev;
 	struct dvb_demux       demux;
 	struct dvb_net         dvbnet;
+	struct dvb_netstream   dvbns;
 	struct dmx_frontend    hw_frontend;
 	struct dmx_frontend    mem_frontend;
 	int                    users;
 	u32                    attached;
 	u8                     input;
 
-	enum fe_sec_tone_mode  tone;
-	enum fe_sec_voltage    voltage;
+	fe_sec_tone_mode_t     tone;
+	fe_sec_voltage_t       voltage;
 
 	int (*i2c_gate_ctrl)(struct dvb_frontend *, int);
-	int (*set_voltage)(struct dvb_frontend *fe,
-		enum fe_sec_voltage voltage);
+	int (*set_voltage)(struct dvb_frontend *fe, fe_sec_voltage_t voltage);
 	int (*set_input)(struct dvb_frontend *fe, int input);
 	int (*diseqc_send_master_cmd)(struct dvb_frontend *fe,
-		struct dvb_diseqc_master_cmd *cmd);
+				      struct dvb_diseqc_master_cmd *cmd);
 };
 
 struct ddb_ci {
@@ -268,6 +299,7 @@ struct ddb_port {
 #define DDB_PORT_CI             1
 #define DDB_PORT_TUNER          2
 #define DDB_PORT_LOOP           3
+#define DDB_PORT_MOD            4
 	char                   *name;
 	char                   *type_name;
 	u32                     type;
@@ -305,6 +337,45 @@ struct ddb_port {
 	u8                     creg;
 };
 
+struct mod_base {
+	u32                    frequency;
+	u32                    flat_start;
+	u32                    flat_end;
+};
+
+struct ddb_mod {
+	struct ddb_port       *port;
+	u32                    nr;
+	u32                    regs;
+	
+	u32                    frequency;
+	u32                    modulation;
+	u32                    symbolrate;
+	
+	u64                    obitrate;
+	u64                    ibitrate;
+	u32                    pcr_correction;
+
+	u32                    rate_inc;
+	u32                    Control;
+	u32                    State;
+	u32                    StateCounter;
+	s32                    LastPCRAdjust;
+	s32                    PCRAdjustSum;
+	s32                    InPacketsSum;
+	s32                    OutPacketsSum;
+	s64                    PCRIncrement;
+	s64                    PCRDecrement;
+	s32                    PCRRunningCorr;
+	u32                    OutOverflowPacketCount;
+	u32                    InOverflowPacketCount;
+	u32                    LastOutPacketCount;
+	u32                    LastInPacketCount;
+	u64                    LastOutPackets;
+	u64                    LastInPackets;
+	u32                    MinInputPackets;
+};
+
 #define CM_STARTUP_DELAY 2
 #define CM_AVERAGE  20
 #define CM_GAIN     10
@@ -318,10 +389,25 @@ struct ddb_port {
 
 #define TS_CAPTURE_LEN  (4096)
 
+/* net streaming hardware block */
+
+#define DDB_NS_MAX 15
+
+struct ddb_ns {
+	struct ddb_input      *input;
+	int                    nr;
+	struct ddb_input      *fe;
+	u32                    rtcp_udplen;
+	u32                    rtcp_len;
+	u32                    ts_offset;
+	u32                    udplen;
+	u8                     p[512];
+};
+
 struct ddb_lnb {
 	struct mutex           lock;
 	u32                    tone;
-	enum fe_sec_voltage    oldvoltage[4];
+	fe_sec_voltage_t       oldvoltage[4];
 	u32                    voltage[4];
 	u32                    voltages;
 	u32                    fmode;
@@ -351,6 +437,7 @@ struct ddb {
 	int                    msi;
 	struct workqueue_struct *wq;
 	u32                    has_dma;
+	u32                    has_ns;
 
 	struct ddb_link        link[DDB_MAX_LINK];
 	unsigned char         *regs;
@@ -377,9 +464,17 @@ struct ddb {
 	u32                    ts_irq;
 	u32                    i2c_irq;
 
+	int                    ns_num;
+	struct ddb_ns          ns[DDB_NS_MAX];
+	int                    vlan;
 	struct mutex           mutex;
 
+	struct dvb_device     *nsd_dev;
 	u8                     tsbuf[TS_CAPTURE_LEN];
+
+	struct mod_base        mod_base;
+	struct ddb_mod         mod[24];
+
 };
 
 static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)
@@ -402,11 +497,33 @@ static inline u32 ddbreadl0(struct ddb_link *link, u32 adr)
 	return readl((char *) (link->dev->regs + (adr)));
 }
 
+#if 0
+static inline void gtlw(struct ddb_link *link)
+{
+	u32 count = 0;
+	static u32 max;
+
+	while (1 & ddbreadl0(link, link->regs + 0x10)) {
+		if (++count == 1024) {
+			pr_info("LTO\n");
+			break;
+		}
+	}
+	if (count > max) {
+		max = count;
+		pr_info("TO=%u\n", max);
+	}
+	if (ddbreadl0(link, link->regs + 0x10) & 0x8000)
+		pr_err("link error\n");
+}
+#else
 static inline void gtlw(struct ddb_link *link)
 {
 	while (1 & ddbreadl0(link, link->regs + 0x10))
 		;
 }
+#endif
+
 
 static u32 ddblreadl(struct ddb_link *link, u32 adr)
 {
@@ -561,6 +678,15 @@ static void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 	return memcpy_fromio(dst, (char *) (dev->regs + adr), count);
 }
 
+#if 0
+
+#define ddbcpyto(_dev, _adr, _src, _count) \
+	memcpy_toio((char *) (_dev->regs + (_adr)), (_src), (_count))
+
+#define ddbcpyfrom(_dev, _dst, _adr, _count) \
+	memcpy_fromio((_dst), (char *) (_dev->regs + (_adr)), (_count))
+#endif
+
 #define ddbmemset(_dev, _adr, _val, _count) \
 	memset_io((char *) (_dev->regs + (_adr)), (_val), (_count))
 
@@ -569,8 +695,64 @@ static void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 /****************************************************************************/
 /****************************************************************************/
 
+#define dd_uint8    u8
+#define dd_uint16   u16
+#define dd_int16    s16
+#define dd_uint32   u32
+#define dd_int32    s32
+#define dd_uint64   u64
+#define dd_int64    s64
+
+#define DDMOD_FLASH_START  0x1000
+
+struct DDMOD_FLASH_DS {
+	dd_uint32   Symbolrate;             /* kSymbols/s */
+	dd_uint32   DACFrequency;           /* kHz        */
+	dd_uint16   FrequencyResolution;    /* kHz        */
+	dd_uint16   IQTableLength;
+	dd_uint16   FrequencyFactor;
+	dd_int16    PhaseCorr;              /* TBD        */
+	dd_uint32   Control2;
+	dd_uint16   PostScaleI;
+	dd_uint16   PostScaleQ;
+	dd_uint16   PreScale;
+	dd_int16    EQTap[11];
+	dd_uint16   FlatStart;
+	dd_uint16   FlatEnd;
+	dd_uint32   FlashOffsetPrecalculatedIQTables;       /* 0 = none */
+	dd_uint8    Reserved[28];
+
+};
+
+struct DDMOD_FLASH {
+	dd_uint32   Magic;
+	dd_uint16   Version;
+	dd_uint16   DataSets;
+
+	dd_uint16   VCORefFrequency;    /* MHz */
+	dd_uint16   VCO1Frequency;      /* MHz */
+	dd_uint16   VCO2Frequency;      /* MHz */
+
+	dd_uint16   DACAux1;    /* TBD */
+	dd_uint16   DACAux2;    /* TBD */
+
+	dd_uint8    Reserved1[238];
+
+	struct DDMOD_FLASH_DS DataSet[1];
+};
+
+#define DDMOD_FLASH_MAGIC   0x5F564d5F
+
+
+int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
+int ddbridge_mod_init(struct ddb *dev);
+void ddbridge_mod_output_stop(struct ddb_output *output);
+int ddbridge_mod_output_start(struct ddb_output *output);
+void ddbridge_mod_rate_handler(unsigned long data);
+
+
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.28+v7a-integrated"
+#define DDBRIDGE_VERSION "0.9.28"
 
 #endif

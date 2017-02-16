@@ -24,10 +24,8 @@
  * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
  */
 
-#undef pr_fmt
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
 #define DDB_USE_WORK
+/*#define DDB_TEST_THREADED*/
 
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
@@ -40,7 +38,6 @@ MODULE_PARM_DESC(adapter_alloc,
 		 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
 
 #ifdef CONFIG_PCI_MSI
-#define DDB_USE_MSI_IRQHANDLERS
 static int msi = 1;
 module_param(msi, int, 0444);
 MODULE_PARM_DESC(msi,
@@ -60,13 +57,24 @@ static void ddb_unmap(struct ddb *dev)
 	vfree(dev);
 }
 
-static void ddb_irq_disable(struct ddb *dev)
+static void __devexit ddb_irq_disable(struct ddb *dev)
 {
-	ddbwritel(dev, 0, INTERRUPT_ENABLE);
-	ddbwritel(dev, 0, MSI1_ENABLE);
+	if (dev->link[0].info->regmap->irq_version == 2) {
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_2);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_3);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_4);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_5);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_6);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_7);
+	} else {
+		ddbwritel(dev, 0, INTERRUPT_ENABLE);
+		ddbwritel(dev, 0, MSI1_ENABLE);
+	}
 }
 
-static void ddb_irq_exit(struct ddb *dev)
+static void __devexit ddb_irq_exit(struct ddb *dev)
 {
 	ddb_irq_disable(dev);
 	if (dev->msi == 2)
@@ -78,14 +86,17 @@ static void ddb_irq_exit(struct ddb *dev)
 #endif
 }
 
-static void ddb_remove(struct pci_dev *pdev)
+static void __devexit ddb_remove(struct pci_dev *pdev)
 {
 	struct ddb *dev = (struct ddb *) pci_get_drvdata(pdev);
 
 	ddb_device_destroy(dev);
+	ddb_nsd_detach(dev);
 	ddb_ports_detach(dev);
 	ddb_i2c_release(dev);
 
+	if (dev->link[0].info->ns_num)
+		ddbwritel(dev, 0, ETHER_CONTROL);
 	ddb_irq_exit(dev);
 	ddb_ports_release(dev);
 	ddb_buffers_free(dev);
@@ -95,28 +106,86 @@ static void ddb_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-#ifdef CONFIG_PCI_MSI
-static void ddb_irq_msi(struct ddb *dev, int nr)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#define __devinit
+#define __devinitdata
+#endif
+
+static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 {
 	int stat;
 
+#ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
-		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+		stat = pci_enable_msi_range(dev->pdev, 1, nr);
 		if (stat >= 1) {
 			dev->msi = stat;
-			pr_info("using %d MSI interrupt(s)\n",
+			pr_info("DDBridge: using %d MSI interrupt(s)\n",
 				dev->msi);
 		} else
-			pr_info("MSI not available.\n");
-	}
-}
+			pr_info("DDBridge: MSI not available.\n");
+		
+#else
+		stat = pci_enable_msi_block(dev->pdev, nr);
+		if (stat == 0) {
+			dev->msi = nr;
+			pr_info("DDBridge: using %d MSI interrupts\n", nr);
+		} else if (stat == 1) {
+			stat = pci_enable_msi(dev->pdev);
+			dev->msi = 1;
+		}
+		if (stat < 0) 
+			pr_info("DDBridge: MSI not available.\n");
 #endif
+	}
+	return stat;
+}
 
-static int ddb_irq_init(struct ddb *dev)
+static int __devinit ddb_irq_init2(struct ddb *dev)
 {
 	int stat;
 	int irq_flag = IRQF_SHARED;
 
+	pr_info("DDBridge: init type 2 IRQ hardware block\n");
+
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_2);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_3);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_4);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_5);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_6);
+	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_7);
+
+	ddb_irq_msi(dev, 1);
+	if (dev->msi)
+		irq_flag = 0;
+
+	stat = request_irq(dev->pdev->irq, irq_handler_v2,
+			   irq_flag, "ddbridge", (void *) dev);
+	if (stat < 0)
+		return stat;
+	
+	ddbwritel(dev, 0x0000ff7f, INTERRUPT_V2_CONTROL);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_1);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_2);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_3);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_4);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_5);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_6);
+	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_7);
+	return stat;
+}
+	
+static int __devinit ddb_irq_init(struct ddb *dev)
+{
+	int stat;
+	int irq_flag = IRQF_SHARED;
+	
+	if (dev->link[0].info->regmap->irq_version == 2)
+		return ddb_irq_init2(dev);
+	
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI1_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI2_ENABLE);
@@ -126,7 +195,6 @@ static int ddb_irq_init(struct ddb *dev)
 	ddbwritel(dev, 0x00000000, MSI6_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI7_ENABLE);
 
-#ifdef CONFIG_PCI_MSI
 	ddb_irq_msi(dev, 2);
 
 	if (dev->msi)
@@ -145,11 +213,19 @@ static int ddb_irq_init(struct ddb *dev)
 	} else
 #endif
 	{
+#ifdef DDB_TEST_THREADED
+		stat = request_threaded_irq(dev->pdev->irq, irq_handler,
+					    irq_thread,
+					    irq_flag,
+					    "ddbridge", (void *) dev);
+#else
 		stat = request_irq(dev->pdev->irq, irq_handler,
 				   irq_flag, "ddbridge", (void *) dev);
+#endif
 		if (stat < 0)
 			return stat;
 	}
+	/*ddbwritel(dev, 0xffffffff, INTERRUPT_ACK);*/
 	if (dev->msi == 2) {
 		ddbwritel(dev, 0x0fffff00, INTERRUPT_ENABLE);
 		ddbwritel(dev, 0x0000000f, MSI1_ENABLE);
@@ -160,7 +236,7 @@ static int ddb_irq_init(struct ddb *dev)
 	return stat;
 }
 
-static int ddb_probe(struct pci_dev *pdev,
+static int __devinit ddb_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *id)
 {
 	struct ddb *dev;
@@ -174,7 +250,7 @@ static int ddb_probe(struct pci_dev *pdev,
 	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)))
 		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
 			return -ENODEV;
-
+	
 	dev = vzalloc(sizeof(struct ddb));
 	if (dev == NULL)
 		return -ENOMEM;
@@ -192,19 +268,19 @@ static int ddb_probe(struct pci_dev *pdev,
 
 	dev->link[0].dev = dev;
 	dev->link[0].info = (struct ddb_info *) id->driver_data;
-	pr_info("detected %s\n", dev->link[0].info->name);
+	pr_info("DDBridge: device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
 			    pci_resource_len(dev->pdev, 0));
 
 	if (!dev->regs) {
-		pr_err("not enough memory for register map\n");
+		pr_err("DDBridge: not enough memory for register map\n");
 		stat = -ENOMEM;
 		goto fail;
 	}
 	if (ddbreadl(dev, 0) == 0xffffffff) {
-		pr_err("cannot read registers\n");
+		pr_err("DDBridge: cannot read registers\n");
 		stat = -ENODEV;
 		goto fail;
 	}
@@ -212,26 +288,36 @@ static int ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
-	pr_info("HW %08x REGMAP %08x\n",
+	pr_info("DDBridge: HW %08x REGMAP %08x\n",
 		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 
+	if (dev->link[0].info->ns_num) {
+		ddbwritel(dev, 0, ETHER_CONTROL);
+		ddb_reset_ios(dev);
+	}
 	ddbwritel(dev, 0, DMA_BASE_READ);
-	ddbwritel(dev, 0, DMA_BASE_WRITE);
+	if (dev->link[0].info->type != DDB_MOD)
+		ddbwritel(dev, 0, DMA_BASE_WRITE);
+
+	if (dev->link[0].info->type == DDB_MOD) {
+		if  (ddbreadl(dev, 0x1c) == 4)
+			dev->link[0].info->port_num = 4;
+	}
 
 	stat = ddb_irq_init(dev);
 	if (stat < 0)
 		goto fail0;
-
+	
 	if (ddb_init(dev) == 0)
 		return 0;
 
 	ddb_irq_disable(dev);
 fail0:
-	pr_err("fail0\n");
+	pr_err("DDBridge: fail0\n");
 	if (dev->msi)
 		pci_disable_msi(dev->pdev);
 fail:
-	pr_err("fail\n");
+	pr_err("DDBridge: fail\n");
 
 	ddb_unmap(dev);
 	pci_set_drvdata(pdev, NULL);
@@ -243,13 +329,13 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 
-static const struct ddb_info ddb_none = {
+static struct ddb_info ddb_none = {
 	.type     = DDB_NONE,
 	.name     = "unknown Digital Devices PCIe card, install newer driver",
 	.regmap   = &octopus_map,
 };
 
-static const struct ddb_info ddb_octopus = {
+static struct ddb_info ddb_octopus = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus DVB adapter",
 	.regmap   = &octopus_map,
@@ -257,7 +343,7 @@ static const struct ddb_info ddb_octopus = {
 	.i2c_mask = 0x0f,
 };
 
-static const struct ddb_info ddb_octopusv3 = {
+static struct ddb_info ddb_octopusv3 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus V3 DVB adapter",
 	.regmap   = &octopus_map,
@@ -265,7 +351,7 @@ static const struct ddb_info ddb_octopusv3 = {
 	.i2c_mask = 0x0f,
 };
 
-static const struct ddb_info ddb_octopus_le = {
+static struct ddb_info ddb_octopus_le = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus LE DVB adapter",
 	.regmap   = &octopus_map,
@@ -273,7 +359,7 @@ static const struct ddb_info ddb_octopus_le = {
 	.i2c_mask = 0x03,
 };
 
-static const struct ddb_info ddb_octopus_oem = {
+static struct ddb_info ddb_octopus_oem = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus OEM",
 	.regmap   = &octopus_map,
@@ -285,7 +371,7 @@ static const struct ddb_info ddb_octopus_oem = {
 	.temp_bus = 0,
 };
 
-static const struct ddb_info ddb_octopus_mini = {
+static struct ddb_info ddb_octopus_mini = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus Mini",
 	.regmap   = &octopus_map,
@@ -293,7 +379,7 @@ static const struct ddb_info ddb_octopus_mini = {
 	.i2c_mask = 0x0f,
 };
 
-static const struct ddb_info ddb_v6 = {
+static struct ddb_info ddb_v6 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V6 DVB adapter",
 	.regmap   = &octopus_map,
@@ -301,7 +387,7 @@ static const struct ddb_info ddb_v6 = {
 	.i2c_mask = 0x07,
 };
 
-static const struct ddb_info ddb_v6_5 = {
+static struct ddb_info ddb_v6_5 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V6.5 DVB adapter",
 	.regmap   = &octopus_map,
@@ -309,18 +395,7 @@ static const struct ddb_info ddb_v6_5 = {
 	.i2c_mask = 0x0f,
 };
 
-static const struct ddb_info ddb_v7 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine S2 V7 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 2,
-	.board_control_2 = 4,
-	.ts_quirks = TS_QUIRK_REVERSED,
-};
-
-static const struct ddb_info ddb_v7a = {
+static struct ddb_info ddb_v7a = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V7 Advanced DVB adapter",
 	.regmap   = &octopus_map,
@@ -331,7 +406,18 @@ static const struct ddb_info ddb_v7a = {
 	.ts_quirks = TS_QUIRK_REVERSED,
 };
 
-static const struct ddb_info ddb_ctv7 = {
+static struct ddb_info ddb_v7 = {
+	.type     = DDB_OCTOPUS,
+	.name     = "Digital Devices Cine S2 V7 DVB adapter",
+	.regmap   = &octopus_map,
+	.port_num = 4,
+	.i2c_mask = 0x0f,
+	.board_control   = 2,
+	.board_control_2 = 4,
+	.ts_quirks = TS_QUIRK_REVERSED,
+};
+
+static struct ddb_info ddb_ctv7 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine CT V7 DVB adapter",
 	.regmap   = &octopus_map,
@@ -341,7 +427,7 @@ static const struct ddb_info ddb_ctv7 = {
 	.board_control_2 = 4,
 };
 
-static const struct ddb_info ddb_satixS2v3 = {
+static struct ddb_info ddb_satixS2v3 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Mystique SaTiX-S2 V3 DVB adapter",
 	.regmap   = &octopus_map,
@@ -349,7 +435,7 @@ static const struct ddb_info ddb_satixS2v3 = {
 	.i2c_mask = 0x07,
 };
 
-static const struct ddb_info ddb_ci = {
+static struct ddb_info ddb_ci = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI",
 	.regmap   = &octopus_map,
@@ -357,7 +443,7 @@ static const struct ddb_info ddb_ci = {
 	.i2c_mask = 0x03,
 };
 
-static const struct ddb_info ddb_cis = {
+static struct ddb_info ddb_cis = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI single",
 	.regmap   = &octopus_map,
@@ -365,7 +451,7 @@ static const struct ddb_info ddb_cis = {
 	.i2c_mask = 0x03,
 };
 
-static const struct ddb_info ddb_ci_s2_pro = {
+static struct ddb_info ddb_ci_s2_pro = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI S2 Pro",
 	.regmap   = &octopus_map,
@@ -375,7 +461,7 @@ static const struct ddb_info ddb_ci_s2_pro = {
 	.board_control_2 = 4,
 };
 
-static const struct ddb_info ddb_ci_s2_pro_a = {
+static struct ddb_info ddb_ci_s2_pro_a = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI S2 Pro Advanced",
 	.regmap   = &octopus_map,
@@ -385,7 +471,7 @@ static const struct ddb_info ddb_ci_s2_pro_a = {
 	.board_control_2 = 4,
 };
 
-static const struct ddb_info ddb_dvbct = {
+static struct ddb_info ddb_dvbct = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices DVBCT V6.1 DVB adapter",
 	.regmap   = &octopus_map,
@@ -395,74 +481,60 @@ static const struct ddb_info ddb_dvbct = {
 
 /****************************************************************************/
 
-static struct ddb_info ddb_s2_48 = {
-	.type     = DDB_OCTOPUS_MAX,
-	.name     = "Digital Devices MAX S8 4/8",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x01,
-	.board_control = 1,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_mod = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C modulator",
+	.regmap   = &octopus_mod_map,
+	.port_num = 10,
+	.temp_num = 1,
 };
 
-static struct ddb_info ddb_ct2_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX A8 CT2",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_mod_fsm_24 = {
+	.type     = DDB_MOD,
+	.version  = 2,
+	.name     = "Digital Devices DVB-C modulator FSM-24",
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 24,
+	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_c2t2_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX A8 C2T2",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_mod_fsm_16 = {
+	.type     = DDB_MOD,
+	.version  = 2,
+	.name     = "Digital Devices DVB-C modulator FSM-16",
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 16,
+	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_isdbt_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX A8 ISDBT",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_mod_fsm_8 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C modulator FSM-8",
+	.version  = 2,
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 8,
+	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_c2t2i_v0_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX A8 C2T2I V0",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL | TS_QUIRK_ALT_OSC,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_octopro_hdin = {
+	.type     = DDB_OCTOPRO_HDIN,
+	.name     = "Digital Devices OctopusNet Pro HDIN",
+	.regmap   = &octopro_hdin_map,
+	.port_num = 10,
+	.i2c_mask = 0x3ff,
+	.mdio_num = 1,
 };
 
-static struct ddb_info ddb_c2t2i_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX A8 C2T2I",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-	.tempmon_irq = 24,
+static struct ddb_info ddb_octopro = {
+	.type     = DDB_OCTOPRO,
+	.name     = "Digital Devices OctopusNet Pro",
+	.regmap   = &octopro_map,
+	.port_num = 10,
+	.i2c_mask = 0x3ff,
+	.mdio_num = 1,
 };
 
 /****************************************************************************/
@@ -476,7 +548,7 @@ static struct ddb_info ddb_c2t2i_8 = {
 	.subvendor   = _subvend, .subdevice = _subdev, \
 	.driver_data = (unsigned long)&_driverdata }
 
-static const struct pci_device_id ddb_id_tbl[] = {
+static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0002, DDVID, 0x0001, ddb_octopus),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0001, ddb_octopus),
 	DDB_ID(DDVID, 0x0005, DDVID, 0x0004, ddb_octopusv3),
@@ -505,6 +577,19 @@ static const struct pci_device_id ddb_id_tbl[] = {
 	DDB_ID(DDVID, 0x0012, DDVID, 0x0042, ddb_ci),
 	DDB_ID(DDVID, 0x0013, DDVID, 0x0043, ddb_ci_s2_pro),
 	DDB_ID(DDVID, 0x0013, DDVID, 0x0044, ddb_ci_s2_pro_a),
+	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
+	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
+	DDB_ID(DDVID, 0x0203, DDVID, 0x0001, ddb_mod),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0001, ddb_mod_fsm_24),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0002, ddb_mod_fsm_16),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0003, ddb_mod_fsm_8),
+	/* testing on OctopusNet Pro */
+	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
+	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
+	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0328, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0329, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
 	/* in case sub-ids got deleted in flash */
 	DDB_ID(DDVID, 0x0003, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0005, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
@@ -530,7 +615,7 @@ static __init int module_init_ddbridge(void)
 {
 	int stat = -1;
 
-	pr_info("Digital Devices PCIE bridge driver "
+	pr_info("DDBridge: Digital Devices PCIE bridge driver "
 		DDBRIDGE_VERSION
 		", Copyright (C) 2010-16 Digital Devices GmbH\n");
 	if (ddb_class_create() < 0)
