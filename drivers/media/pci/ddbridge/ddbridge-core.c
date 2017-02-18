@@ -928,8 +928,8 @@ static int demod_attach_cxd2843(struct ddb_input *input, int par, int osc24)
 struct stv0367_config stv0367_port0 = {
 	.demod_address = 0x1f,
 	.xtal = 27000000,
-	.icspeed = STV0367_ICSPEED_58000,
-	.if_khz = 5000,
+	.icspeed = STV0367_ICSPEED_53125,
+	.if_khz = 0,
 	.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 	.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 	.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
@@ -939,8 +939,8 @@ struct stv0367_config stv0367_port0 = {
 struct stv0367_config stv0367_port1 = {
 	.demod_address = 0x1e,
 	.xtal = 27000000,
-	.icspeed = STV0367_ICSPEED_58000,
-	.if_khz = 5000,
+	.icspeed = STV0367_ICSPEED_53125,
+	.if_khz = 0,
 	.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 	.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 	.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
@@ -953,12 +953,12 @@ static int demod_attach_stv0367(struct ddb_input *input)
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_frontend *fe;
 
-	/* attach DVB-C frontend */
-	fe = dvb->fe = dvb_attach(stv0367cab_attach,
+	/* attach DVB-T frontend */
+	fe = dvb->fe = dvb_attach(stv0367ter_attach,
 		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
 
 	if (!dvb->fe) {
-		pr_err("stv0367cab_attach failed (not found?)\n");
+		pr_err("stv0367ter_attach failed (not found?)\n");
 		return -ENODEV;
 	}
 
