@@ -97,7 +97,7 @@ struct st_register {
 };
 
 /* values for STV4100 XTAL=30M int clk=53.125M*/
-static struct st_register def0367ter[STV0367TER_NBREGS] = {
+static struct st_register def0367ter[] = {
 	{R367TER_ID,		0x60},
 	{R367TER_I2CRPT,	0xa0},
 	/* {R367TER_I2CRPT,	0x22},*/
@@ -544,6 +544,7 @@ static struct st_register def0367ter[STV0367TER_NBREGS] = {
 	{R367TER_DEBUG_LT7,	0x00},
 	{R367TER_DEBUG_LT8,	0x00},
 	{R367TER_DEBUG_LT9,	0x00},
+	{0x0000,		0x00},
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -571,7 +572,7 @@ static const s32 stv0367cab_RF_LookUp2[RF_LOOKUP_TABLE2_SIZE][RF_LOOKUP_TABLE2_S
 	}
 };
 
-static struct st_register def0367cab[STV0367CAB_NBREGS] = {
+static struct st_register def0367cab[] = {
 	{R367CAB_ID,		0x60},
 	{R367CAB_I2CRPT,	0xa0},
 	/*{R367CAB_I2CRPT,	0x22},*/
@@ -760,6 +761,7 @@ static struct st_register def0367cab[STV0367CAB_NBREGS] = {
 	{R367CAB_T_O_ID_1,	0x00},
 	{R367CAB_T_O_ID_2,	0x00},
 	{R367CAB_T_O_ID_3,	0x00},
+	{0x0000,		0x00},
 };
 
 static
@@ -899,6 +901,19 @@ static u8 stv0367_getbits(u8 reg, u32 label)
 	return (reg & mask) >> pos;
 }
 #endif
+
+static void stv0367_write_table(struct stv0367_state *state, struct st_register *regtable)
+{
+	int i = 0;
+
+	while (1) {
+		if (!regtable[i].addr)
+			break;
+		stv0367_writereg(state, regtable[i].addr, regtable[i].value);
+		i++;
+	}
+}
+
 static int stv0367ter_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
@@ -1538,15 +1553,12 @@ static int stv0367ter_init(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367ter_state *ter_state = state->ter_state;
-	int i;
 
 	dprintk("%s:\n", __func__);
 
 	ter_state->pBER = 0;
 
-	for (i = 0; i < STV0367TER_NBREGS; i++)
-		stv0367_writereg(state, def0367ter[i].addr,
-					def0367ter[i].value);
+	stv0367_write_table(state, def0367ter);
 
 	switch (state->config->xtal) {
 		/*set internal freq to 53.125MHz */
@@ -2777,13 +2789,10 @@ static int stv0367cab_init(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367cab_state *cab_state = state->cab_state;
-	int i;
 
 	dprintk("%s:\n", __func__);
 
-	for (i = 0; i < STV0367CAB_NBREGS; i++)
-		stv0367_writereg(state, def0367cab[i].addr,
-						def0367cab[i].value);
+	stv0367_write_table(state, def0367cab);
 
 	switch (state->config->ts_mode) {
 	case STV0367_DVBCI_CLOCK:
