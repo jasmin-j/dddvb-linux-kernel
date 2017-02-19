@@ -2860,6 +2860,8 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 
+	pr_info("%s", __func__);
+
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x00); /* R367CAB_CTRL_1 */
@@ -2894,6 +2896,8 @@ static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367ter_state *ter_state = state->ter_state;
+
+	pr_info("%s", __func__);
 
 	ter_state->pBER = 0;
 
@@ -3025,7 +3029,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->i2c = i2c;
 	state->config = config;
 	state->ter_state = ter_state;
-	state->fe.ops = stv0367ter_ops;
+	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
