@@ -63,6 +63,7 @@ struct stv0367cab_state {
 	u32 freq_khz;			/* found frequency (in kHz)	*/
 	u32 symbol_rate;		/* found symbol rate (in Bds)	*/
 	enum fe_spectral_inversion spect_inv; /* Spectrum Inversion	*/
+	u32 qam_inversion;
 };
 
 struct stv0367ter_state {
@@ -1803,8 +1804,13 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 						 u32 SymbolRate,
 						 enum stv0367cab_mod QAMSize)
 {
+	/* Set up qam_inversion / EQU_MAPPER */
+	if (state->cab_state->qam_inversion)
+		stv0367_writereg(state, R367CAB_EQU_MAPPER,
+			state->cab_state->qam_inversion | QAMSize);
 	/* Set QAM size */
-	stv0367_writebits(state, F367CAB_QAM_MODE, QAMSize);
+	else
+		stv0367_writebits(state, F367CAB_QAM_MODE, QAMSize);
 
 	/* Set Registers settings specific to the QAM size */
 	switch (QAMSize) {
@@ -2850,6 +2856,7 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->i2c = i2c;
 	state->config = config;
 	cab_state->search_range = 280000;
+	cab_state->qam_inversion = 0;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367cab_ops;
 	state->fe.demodulator_priv = state;
@@ -3187,6 +3194,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->config = config;
 	state->ter_state = ter_state;
 	cab_state->search_range = 280000;
+	cab_state->qam_inversion = 2 << 6;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
