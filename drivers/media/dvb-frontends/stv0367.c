@@ -2242,13 +2242,19 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 {
 	struct stv0367cab_state *cab_state = state->cab_state;
 	enum stv0367_cab_signal_type signalType = FE_CAB_NOAGC;
-	u32	QAMFEC_Lock, QAM_Lock, u32_tmp,
+	u32	QAMFEC_Lock, QAM_Lock, u32_tmp, ifkhz,
 		LockTime, TRLTimeOut, AGCTimeOut, CRLSymbols,
 		CRLTimeOut, EQLTimeOut, DemodTimeOut, FECTimeOut;
 	u8	TrackAGCAccum;
 	s32	tmp;
 
 	dprintk("%s:\n", __func__);
+
+	if (state->auto_if_khz && state->fe.ops.tuner_ops.get_if_frequency) {
+		state->fe.ops.tuner_ops.get_if_frequency(&state->fe, &ifkhz);
+		ifkhz = ifkhz / 1000;
+	} else
+		ifkhz = state->config->if_khz;
 
 	/* Timeouts calculation */
 	/* A max lock time of 25 ms is allowed for delayed AGC */
@@ -2328,7 +2334,7 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 	/* The sweep function is never used, Sweep rate must be set to 0 */
 	/* Set the derotator frequency in Hz */
 	stv0367cab_set_derot_freq(state, cab_state->adc_clk,
-		(1000 * (s32)state->config->if_khz + cab_state->derot_offset));
+		(1000 * (s32)ifkhz + cab_state->derot_offset));
 	/* Disable the Allpass Filter when the symbol rate is out of range */
 	if ((p->symbol_rate > 10800000) | (p->symbol_rate < 1800000)) {
 		stv0367_writebits(state, F367CAB_ADJ_EN, 0);
@@ -2418,17 +2424,17 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 							F367CAB_QUAD_INV);
 #if 0
 /* not clear for me */
-		if (state->config->if_khz != 0) {
-			if (state->config->if_khz > cab_state->adc_clk / 1000) {
+		if (ifkhz != 0) {
+			if (ifkhz > cab_state->adc_clk / 1000) {
 				cab_state->freq_khz =
 					FE_Cab_TunerGetFrequency(pIntParams->hTuner)
 				- stv0367cab_get_derot_freq(state, cab_state->adc_clk)
-				- cab_state->adc_clk / 1000 + state->config->if_khz;
+				- cab_state->adc_clk / 1000 + ifkhz;
 			} else {
 				cab_state->freq_khz =
 						FE_Cab_TunerGetFrequency(pIntParams->hTuner)
 						- stv0367cab_get_derot_freq(state, cab_state->adc_clk)
-										+ state->config->if_khz;
+										+ ifkhz;
 			}
 		} else {
 			cab_state->freq_khz =
@@ -2932,11 +2938,11 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
 
 	/* IC runs at 58 MHz with a 27 MHz crystal */
-	/*stv0367_writereg(state, R367TER_PLLMDIV, 27);*/
-	/*stv0367_writereg(state, R367TER_PLLNDIV, 232);*/
+	stv0367_writereg(state, R367TER_PLLMDIV, 27);
+	stv0367_writereg(state, R367TER_PLLNDIV, 232);
 	/* lets test 27/53,125 */
-	stv0367_writereg(state, R367TER_PLLMDIV, 1);
-	stv0367_writereg(state, R367TER_PLLNDIV, 8);
+	/*stv0367_writereg(state, R367TER_PLLMDIV, 1);*/
+	/*stv0367_writereg(state, R367TER_PLLNDIV, 8);*/
 	/* ADC clock is equal to system clock */
 	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
 
