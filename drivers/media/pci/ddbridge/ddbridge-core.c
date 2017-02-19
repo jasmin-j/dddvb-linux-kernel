@@ -933,8 +933,6 @@ struct stv0367_config stv0367_port0 = {
 	.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 	.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 	.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
-	.use_i2c_gatectrl = 0,
-	.defaulttab = 1,
 };
 
 struct stv0367_config stv0367_port1 = {
@@ -945,8 +943,6 @@ struct stv0367_config stv0367_port1 = {
 	.if_iq_mode = FE_TER_NORMAL_IF_TUNER,
 	.ts_mode = STV0367_SERIAL_PUNCT_CLOCK,
 	.clk_pol = STV0367_CLOCKPOLARITY_DEFAULT,
-	.use_i2c_gatectrl = 0,
-	.defaulttab = 1,
 };
 
 static int demod_attach_stv0367(struct ddb_input *input)

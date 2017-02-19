@@ -849,8 +849,6 @@ static struct stv0367_config netup_stv0367_config[] = {
 		.if_iq_mode = 0,
 		.ts_mode = 1,
 		.clk_pol = 0,
-		.use_i2c_gatectrl = 1,
-		.defaulttab = 0,
 	}, {
 		.demod_address = 0x1d,
 		.xtal = 27000000,
@@ -859,8 +857,6 @@ static struct stv0367_config netup_stv0367_config[] = {
 		.if_iq_mode = 0,
 		.ts_mode = 1,
 		.clk_pol = 0,
-		.use_i2c_gatectrl = 1,
-		.defaulttab = 0,
 	},
 };
 

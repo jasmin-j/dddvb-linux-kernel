@@ -94,8 +94,10 @@ struct stv0367_state {
 	struct stv0367cab_state *cab_state;
 	/* DVB-T */
 	struct stv0367ter_state *ter_state;
+
+	/* flags for operation control */
 	u8 use_i2c_gatectrl;
-	u8 defaulttab;
+	u8 defaultstab;
 	u8 full_reinit;
 	u8 auto_if_khz;
 };
@@ -964,7 +966,7 @@ static int stv0367ter_init(struct dvb_frontend *fe)
 	ter_state->pBER = 0;
 
 	stv0367_write_table(state,
-		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_TER]);
+		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_TER]);
 
 	stv0367_pll_setup(state);
 
@@ -1720,8 +1722,10 @@ struct dvb_frontend *stv0367ter_attach(const struct stv0367_config *config,
 	state->fe.ops = stv0367ter_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
-	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
-	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+
+	/* demod operation options */
+	state->use_i2c_gatectrl = 1;
+	state->defaultstab = STV0367_DEFVARIANT_GENERIC;
 	state->full_reinit = 1;
 	state->auto_if_khz = 0;
 
@@ -2185,7 +2189,7 @@ static int stv0367cab_init(struct dvb_frontend *fe)
 	dprintk("%s:\n", __func__);
 
 	stv0367_write_table(state,
-		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_CAB]);
+		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_CAB]);
 
 	stv0367_pll_setup(state);
 
@@ -2841,8 +2845,10 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->fe.ops = stv0367cab_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
-	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
-	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+
+	/* demod operation options */
+	state->use_i2c_gatectrl = 1;
+	state->defaultstab = STV0367_DEFVARIANT_GENERIC;
 	state->full_reinit = 1;
 	state->auto_if_khz = 0;
 
@@ -2860,6 +2866,10 @@ error:
 	return NULL;
 }
 EXPORT_SYMBOL(stv0367cab_attach);
+
+/*
+ * Functions for operation on Digital Devices hardware
+ */
 
 static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 {
@@ -2906,16 +2916,16 @@ static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
 
-	if (stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_BASE])
+	if (stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_BASE])
 		stv0367_write_table(state,
-			stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_BASE]);
+			stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_BASE]);
 
 	stv0367_write_table(state,
-		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_CAB]);
+		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_CAB]);
 
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x00);
 	stv0367_write_table(state,
-		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_TER]);
+		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_TER]);
 
 	stv0367_writereg(state, R367TER_GAIN_SRC1, 0x2A);
 	stv0367_writereg(state, R367TER_GAIN_SRC2, 0xD6);
@@ -3033,8 +3043,10 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
-	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
-	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+
+	/* demod operation options */
+	state->use_i2c_gatectrl = 0;
+	state->defaultstab = STV0367_DEFVARIANT_DIGITALDEVICES;
 	state->full_reinit = 0;
 	state->auto_if_khz = 1;
 
