@@ -3112,14 +3112,20 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 }
 
 static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
-	.delsys = { SYS_DVBT },
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT },
 	.info = {
-		.name			= "ST STV0367 DVB-T (Digital Devices)",
+		.name			= "ST STV0367 DVB-C DVB-T (DD)",
 		.frequency_min		= 47000000,
 		.frequency_max		= 862000000,
 		.frequency_stepsize	= 15625,
 		.frequency_tolerance	= 0,
-		.caps = FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 |
+		.caps = /* DVB-C */
+			0x400 |/* FE_CAN_QAM_4 */
+			FE_CAN_QAM_16 | FE_CAN_QAM_32  |
+			FE_CAN_QAM_64 | FE_CAN_QAM_128 |
+			FE_CAN_QAM_256 | FE_CAN_FEC_AUTO |
+			/* DVB-T */
+			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 |
 			FE_CAN_FEC_3_4 | FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 |
 			FE_CAN_FEC_AUTO |
 			FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_64 |
