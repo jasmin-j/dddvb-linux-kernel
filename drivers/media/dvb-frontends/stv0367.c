@@ -665,6 +665,7 @@ stv0367_ter_signal_type stv0367ter_check_cpamp(struct stv0367_state *state,
 	dprintk("%s: CPAMPMin=%d wd=%d\n", __func__, CPAMPMin, wd);
 
 	CPAMPvalue = stv0367_readbits(state, F367TER_PPM_CPAMP_DIRECT);
+#if 0
 	while ((CPAMPvalue < CPAMPMin) && (wd > 0)) {
 		usleep_range(1000, 2000);
 		wd -= 1;
@@ -679,6 +680,9 @@ stv0367_ter_signal_type stv0367ter_check_cpamp(struct stv0367_state *state,
 		printk(KERN_ERR "CPAMP OK !\n");
 		CPAMPStatus = FE_TER_CPAMPOK;
 	}
+#else
+	CPAMPStatus = FE_TER_CPAMPOK;
+#endif
 
 	return CPAMPStatus;
 }
