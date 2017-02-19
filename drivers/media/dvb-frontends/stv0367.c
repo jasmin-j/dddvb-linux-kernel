@@ -2969,10 +2969,11 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 		if (state->activedemod != demod_cab)
 			stv0367digitaldevices_setup_cab(state);
 
-		if (state->cab_state->mclk == 0)
+		/* protect against division error oopses */
+		if (fe->dtv_property_cache.symbol_rate == 0) {
+			pr_err("Invalid symbol rate\n");
 			return -EINVAL;
-		if (state->cab_state->adc_clk == 0)
-			return -EINVAL;
+		}
 
 		return stv0367cab_set_frontend(fe);
 		break;
