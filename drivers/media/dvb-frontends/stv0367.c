@@ -50,6 +50,8 @@ module_param_named(i2c_debug, i2cdebug, int, 0644);
 	} while (0)
 	/* DVB-C */
 
+enum active_demod_state { demod_none, demod_ter, demod_cab };
+
 struct stv0367cab_state {
 	enum stv0367_cab_signal_type	state;
 	u32	mclk;
@@ -100,6 +102,7 @@ struct stv0367_state {
 	u8 defaultstab;
 	u8 full_reinit;
 	u8 auto_if_khz;
+	enum active_demod_state activedemod;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -2905,14 +2908,9 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 	return stv0367ter_set_frontend(fe);
 }
 
-static int stv0367digitaldevices_init(struct dvb_frontend *fe)
+static int stv0367digitaldevices_init(struct stv0367_state *state)
 {
-	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367ter_state *ter_state = state->ter_state;
-
-	ter_state->pBER = 0;
-
-	state->chip_id = stv0367_readreg(state, R367TER_ID);
 
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
 
@@ -2985,6 +2983,8 @@ static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 
 	stv0367_writereg(state, R367TER_I2CRPT, (0x08 | ((5 & 0x07) << 4)));
 
+	state->activedemod = demod_cab;
+	ter_state->pBER = 0;
 	ter_state->first_lock = 0;
 	ter_state->unlock_counter = 2;
 
@@ -3009,7 +3009,6 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 			FE_CAN_MUTE_TS
 	},
 	.release = stv0367_release,
-	.init = stv0367digitaldevices_init,
 	.sleep = stv0367ter_sleep,
 	.i2c_gate_ctrl = stv0367ter_gate_ctrl,
 	.set_frontend = stv0367digitaldevices_set_frontend,
@@ -3049,12 +3048,21 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->defaultstab = STV0367_DEFVARIANT_DIGITALDEVICES;
 	state->full_reinit = 0;
 	state->auto_if_khz = 1;
+	state->activedemod = demod_none;
+
+	state->chip_id = stv0367_readreg(state, R367TER_ID);
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
 	/* check if the demod is there */
 	if ((state->chip_id != 0x50) && (state->chip_id != 0x60))
 		goto error;
+
+	dev_info(&i2c->dev, "Found %s with ChipID %02X at adr %02X on %s\n",
+		state->fe.ops.info.name, state->chip_id,
+		config->demod_address, dev_name(&state->i2c->dev));
+
+	stv0367digitaldevices_init(state);
 
 	return &state->fe;
 
