@@ -2874,9 +2874,9 @@ EXPORT_SYMBOL(stv0367cab_attach);
  * Functions for operation on Digital Devices hardware
  */
 
-static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
+static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 {
-	struct stv0367_state *state = fe->demodulator_priv;
+	dev_info(&state->i2c->dev, "switching to OFDM mode");
 
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
@@ -2905,7 +2905,127 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 	/* PLL enabled and used */
 	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
 
-	return stv0367ter_set_frontend(fe);
+	state->activedemod = demod_ter;
+}
+
+static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
+{
+	dev_info(&state->i2c->dev, "switching to QAM mode");
+
+	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
+	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x01);
+	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x06); /* R367CAB_CTRL_1 */
+	stv0367_writereg(state, R367TER_DEBUG_LT7, 0x03); /* R367CAB_CTRL_2 */
+	stv0367_writereg(state, R367TER_DEBUG_LT8, 0x00);
+	stv0367_writereg(state, R367TER_DEBUG_LT9, 0x00);
+
+	/* Tuner Setup */
+	/* Buffer Q disabled, I Enabled, signed ADC */
+	stv0367_writereg(state, R367TER_ANADIGCTRL, 0x8B);
+	/* ADCQ disabled */
+	stv0367_writereg(state, R367TER_DUAL_AD12, 0x04);
+
+	/* Clock setup */
+	/* PLL bypassed and disabled */
+	stv0367_writereg(state, R367TER_ANACTRL, 0x0D);
+	/* Set QAM */
+	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
+
+	/* IC runs at 58 MHz with a 27 MHz crystal */
+	/*stv0367_writereg(state, R367TER_PLLMDIV, 27);*/
+	/*stv0367_writereg(state, R367TER_PLLNDIV, 232);*/
+	/* lets test 27/53,125 */
+	stv0367_writereg(state, R367TER_PLLMDIV, 1);
+	stv0367_writereg(state, R367TER_PLLNDIV, 8);
+	/* ADC clock is equal to system clock */
+	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
+
+	msleep(50);
+	/* PLL enabled and used */
+	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
+
+	state->activedemod = demod_cab;
+}
+
+static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
+{
+	struct stv0367_state *state = fe->demodulator_priv;
+
+	switch (fe->dtv_property_cache.delivery_system) {
+	case SYS_DVBT:
+		if (state->activedemod != demod_ter)
+			stv0367digitaldevices_setup_ter(state);
+
+		return stv0367ter_set_frontend(fe);
+		break;
+	case SYS_DVBC_ANNEX_A:
+		/* TODO */
+		if (state->activedemod != demod_cab)
+			stv0367digitaldevices_setup_cab(state);
+
+		return stv0367cab_set_frontend(fe);
+		break;
+	default:
+		break;
+	}
+
+	return -EINVAL;
+}
+
+static int stv0367digitaldevices_get_frontend(struct dvb_frontend *fe,
+				   struct dtv_frontend_properties *p)
+{
+	struct stv0367_state *state = fe->demodulator_priv;
+
+	switch(state->activedemod) {
+	case demod_ter:
+		return stv0367ter_get_frontend(fe, p);
+		break;
+	case demod_cab:
+		return stv0367cab_get_frontend(fe, p);
+		break;
+	default:
+		break;
+	}
+
+	return -EINVAL;
+}
+
+static int stv0367digitaldevices_read_status(struct dvb_frontend *fe,
+				  enum fe_status *status)
+{
+	struct stv0367_state *state = fe->demodulator_priv;
+
+	switch(state->activedemod) {
+	case demod_ter:
+		return stv0367ter_read_status(fe, status);
+		break;
+	case demod_cab:
+		return stv0367cab_read_status(fe, status);
+		break;
+	default:
+		break;
+	}
+
+	return -EINVAL;
+}
+
+static int stv0367digitaldevices_sleep(struct dvb_frontend *fe)
+{
+	struct stv0367_state *state = fe->demodulator_priv;
+
+	switch(state->activedemod) {
+	case demod_ter:
+		return stv0367ter_sleep(fe);
+		break;
+	case demod_cab:
+		return stv0367cab_sleep(fe);
+		break;
+	default:
+		break;
+	}
+
+	return -EINVAL;
 }
 
 static int stv0367digitaldevices_init(struct stv0367_state *state)
@@ -3009,16 +3129,16 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 			FE_CAN_MUTE_TS
 	},
 	.release = stv0367_release,
-	.sleep = stv0367ter_sleep,
+	.sleep = stv0367digitaldevices_sleep,
 	.i2c_gate_ctrl = stv0367ter_gate_ctrl,
 	.set_frontend = stv0367digitaldevices_set_frontend,
-	.get_frontend = stv0367ter_get_frontend,
+	.get_frontend = stv0367digitaldevices_get_frontend,
 	.get_tune_settings = stv0367_get_tune_settings,
-	.read_status = stv0367ter_read_status,
-	.read_ber = stv0367ter_read_ber,/* too slow */
+	.read_status = stv0367digitaldevices_read_status,
+/*	.read_ber = stv0367ter_read_ber, ** too slow */
 /*	.read_signal_strength = stv0367_read_signal_strength,*/
-	.read_snr = stv0367ter_read_snr,
-	.read_ucblocks = stv0367ter_read_ucblocks,
+/*	.read_snr = stv0367ter_read_snr, */
+/*	.read_ucblocks = stv0367ter_read_ucblocks, */
 };
 
 struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *config,
@@ -3026,6 +3146,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 {
 	struct stv0367_state *state = NULL;
 	struct stv0367ter_state *ter_state = NULL;
+	struct stv0367cab_state *cab_state = NULL;
 
 	/* allocate memory for the internal state */
 	state = kzalloc(sizeof(struct stv0367_state), GFP_KERNEL);
@@ -3034,11 +3155,16 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	ter_state = kzalloc(sizeof(struct stv0367ter_state), GFP_KERNEL);
 	if (ter_state == NULL)
 		goto error;
+	cab_state = kzalloc(sizeof(struct stv0367cab_state), GFP_KERNEL);
+	if (cab_state == NULL)
+		goto error;
 
 	/* setup the state */
 	state->i2c = i2c;
 	state->config = config;
 	state->ter_state = ter_state;
+	cab_state->search_range = 280000;
+	state->cab_state = cab_state;
 	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
