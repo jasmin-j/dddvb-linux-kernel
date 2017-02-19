@@ -3135,7 +3135,7 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 			FE_CAN_MUTE_TS
 	},
 	.release = stv0367_release,
-	.sleep = stv0367digitaldevices_sleep,
+/*	.sleep = stv0367digitaldevices_sleep, */
 	.i2c_gate_ctrl = stv0367ter_gate_ctrl,
 	.set_frontend = stv0367digitaldevices_set_frontend,
 	.get_frontend = stv0367digitaldevices_get_frontend,
