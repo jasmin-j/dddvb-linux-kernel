@@ -2947,6 +2947,9 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	state->cab_state->mclk = stv0367cab_get_mclk(&state->fe, state->config->xtal);
 	state->cab_state->adc_clk = stv0367cab_get_adc_freq(&state->fe, state->config->xtal);
 
+	dev_info(&state->i2c->dev, "state->cab_state->mclk = %u\n");
+	dev_info(&state->i2c->dev, "state->cab_state->adc_clk = %u\n");
+
 	state->activedemod = demod_cab;
 }
 
@@ -2965,6 +2968,11 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 		/* TODO */
 		if (state->activedemod != demod_cab)
 			stv0367digitaldevices_setup_cab(state);
+
+		if (state->cab_state->mclk == 0)
+			return -EINVAL;
+		if (state->cab_state->adc_clk == 0)
+			return -EINVAL;
 
 		return stv0367cab_set_frontend(fe);
 		break;
