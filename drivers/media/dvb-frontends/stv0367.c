@@ -91,6 +91,7 @@ struct stv0367_state {
 	/* DVB-T */
 	struct stv0367ter_state *ter_state;
 	u8 use_i2c_gatectrl;
+	u8 defaulttab;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -957,7 +958,7 @@ static int stv0367ter_init(struct dvb_frontend *fe)
 	ter_state->pBER = 0;
 
 	stv0367_write_table(state,
-		stv0367_deftabs[STV0367_DEFVARIANT_GENERIC][STV0367_DEFTAB_TER]);
+		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_TER]);
 
 	stv0367_pll_setup(state);
 
@@ -1708,6 +1709,7 @@ struct dvb_frontend *stv0367ter_attach(const struct stv0367_config *config,
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
+	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -2169,7 +2171,7 @@ static int stv0367cab_init(struct dvb_frontend *fe)
 	dprintk("%s:\n", __func__);
 
 	stv0367_write_table(state,
-		stv0367_deftabs[STV0367_DEFVARIANT_GENERIC][STV0367_DEFTAB_CAB]);
+		stv0367_deftabs[state->defaulttab][STV0367_DEFTAB_CAB]);
 
 	stv0367_pll_setup(state);
 
@@ -2825,6 +2827,7 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
+	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
