@@ -92,6 +92,8 @@ struct stv0367_state {
 	struct stv0367ter_state *ter_state;
 	u8 use_i2c_gatectrl;
 	u8 defaulttab;
+	u8 full_reinit;
+	u8 auto_if_khz;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -986,9 +988,14 @@ static int stv0367ter_algo(struct dvb_frontend *fe)
 	u8 /*constell,*/ counter;
 	s8 step;
 	s32 timing_offset = 0;
-	u32 trl_nomrate = 0, InternalFreq = 0, temp = 0;
+	u32 trl_nomrate = 0, InternalFreq = 0, temp = 0, ifkhz = 0;
 
 	dprintk("%s:\n", __func__);
+
+	if (state->auto_if_khz && fe->ops.tuner_ops.get_if_frequency)
+		fe->ops.tuner_ops.get_if_frequency(fe, &ifkhz);
+	else
+		ifkhz = state->config->if_khz;
 
 	ter_state->frequency = p->frequency;
 	ter_state->force = FE_TER_FORCENONE
@@ -1092,8 +1099,7 @@ static int stv0367ter_algo(struct dvb_frontend *fe)
 			stv0367_readbits(state, F367TER_GAIN_SRC_LO);
 
 	temp = (int)
-		((InternalFreq - state->config->if_khz) * (1 << 16)
-							/ (InternalFreq));
+		((InternalFreq - ifkhz) * (1 << 16) / (InternalFreq));
 
 	dprintk("DEROT temp=0x%x\n", temp);
 	stv0367_writebits(state, F367TER_INC_DEROT_HI, temp / 256);
@@ -1212,7 +1218,8 @@ static int stv0367ter_set_frontend(struct dvb_frontend *fe)
 	s8 num_trials, index;
 	u8 SenseTrials[] = { INVERSION_ON, INVERSION_OFF };
 
-	stv0367ter_init(fe);
+	if (state->full_reinit)
+		stv0367ter_init(fe);
 
 	if (fe->ops.tuner_ops.set_params) {
 		if (state->use_i2c_gatectrl && fe->ops.i2c_gate_ctrl)
@@ -1710,6 +1717,8 @@ struct dvb_frontend *stv0367ter_attach(const struct stv0367_config *config,
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
 	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+	state->full_reinit = 1;
+	state->auto_if_khz = 0;
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -2506,7 +2515,8 @@ static int stv0367cab_set_frontend(struct dvb_frontend *fe)
 		break;
 	}
 
-	stv0367cab_init(fe);
+	if (state->full_reinit)
+		stv0367cab_init(fe);
 
 	/* Tuner Frequency Setting */
 	if (fe->ops.tuner_ops.set_params) {
@@ -2828,6 +2838,8 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
 	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+	state->full_reinit = 1;
+	state->auto_if_khz = 0;
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -2844,11 +2856,39 @@ error:
 }
 EXPORT_SYMBOL(stv0367cab_attach);
 
+static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
+{
+	struct stv0367_state *state = fe->demodulator_priv;
 
+	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
+	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
+	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x00); /* R367CAB_CTRL_1 */
+	stv0367_writereg(state, R367TER_DEBUG_LT7, 0x00); /* R367CAB_CTRL_2 */
+	stv0367_writereg(state, R367TER_DEBUG_LT8, 0x00);
+	stv0367_writereg(state, R367TER_DEBUG_LT9, 0x00);
 
+	/* Tuner Setup */
+	/* Buffer Q disabled, I Enabled, unsigned ADC */
+	stv0367_writereg(state, R367TER_ANADIGCTRL, 0x89);
+	stv0367_writereg(state, R367TER_DUAL_AD12, 0x04); /* ADCQ disabled */
 
+	/* Clock setup */
+	/* PLL bypassed and disabled */
+	stv0367_writereg(state, R367TER_ANACTRL, 0x0D);
+	stv0367_writereg(state, R367TER_TOPCTRL, 0x00); /* Set OFDM */
 
+	/* IC runs at 54 MHz with a 27 MHz crystal */
+	stv0367_writereg(state, R367TER_PLLMDIV, 1);
+	stv0367_writereg(state, R367TER_PLLNDIV, 8);
+	/* ADC clock is equal to system clock */
+	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
 
+	msleep(50);
+	/* PLL enabled and used */
+	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
+
+	return stv0367ter_set_frontend(fe);
+}
 
 static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 {
@@ -2930,22 +2970,11 @@ static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 
 	stv0367_writereg(state, R367TER_I2CRPT, (0x08 | ((5 & 0x07) << 4)));
 
-/*	stv0367_pll_setup(state);
-
-	stv0367_writereg(state, R367TER_I2CRPT, 0x5);
-	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
-*/
-	/*Set TS1 and TS2 to serial or parallel mode */
-	/*stv0367ter_set_ts_mode(state, state->config->ts_mode);
-	stv0367ter_set_clk_pol(state, state->config->clk_pol);*/
-
 	ter_state->first_lock = 0;
 	ter_state->unlock_counter = 2;
 
 	return 0;
 }
-
-
 
 static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 	.delsys = { SYS_DVBT },
@@ -3001,6 +3030,8 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->chip_id = stv0367_readreg(state, 0xf000);
 	state->use_i2c_gatectrl = (config->use_i2c_gatectrl ? 1 : 0);
 	state->defaulttab = (config->defaulttab < STV0367_DEFVARIANT_MAX ? config->defaulttab : 0);
+	state->full_reinit = 0;
+	state->auto_if_khz = 1;
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -3016,8 +3047,6 @@ error:
 	return NULL;
 }
 EXPORT_SYMBOL(stv0367digitaldevices_attach);
-
-
 
 MODULE_PARM_DESC(debug, "Set debug");
 MODULE_PARM_DESC(i2c_debug, "Set i2c debug");
