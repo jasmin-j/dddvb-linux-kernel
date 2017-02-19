@@ -992,9 +992,10 @@ static int stv0367ter_algo(struct dvb_frontend *fe)
 
 	dprintk("%s:\n", __func__);
 
-	if (state->auto_if_khz && fe->ops.tuner_ops.get_if_frequency)
+	if (state->auto_if_khz && fe->ops.tuner_ops.get_if_frequency) {
 		fe->ops.tuner_ops.get_if_frequency(fe, &ifkhz);
-	else
+		ifkhz = ifkhz / 1000;
+	} else
 		ifkhz = state->config->if_khz;
 
 	ter_state->frequency = p->frequency;
@@ -2860,8 +2861,6 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 
-	pr_info("%s", __func__);
-
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x00); /* R367CAB_CTRL_1 */
@@ -2896,8 +2895,6 @@ static int stv0367digitaldevices_init(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367ter_state *ter_state = state->ter_state;
-
-	pr_info("%s", __func__);
 
 	ter_state->pBER = 0;
 
