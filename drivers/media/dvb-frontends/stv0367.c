@@ -2960,9 +2960,6 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	state->cab_state->mclk = stv0367cab_get_mclk(&state->fe, state->config->xtal);
 	state->cab_state->adc_clk = stv0367cab_get_adc_freq(&state->fe, state->config->xtal);
 
-	dev_info(&state->i2c->dev, "state->cab_state->mclk = %u\n", state->cab_state->mclk);
-	dev_info(&state->i2c->dev, "state->cab_state->adc_clk = %u\n", state->cab_state->adc_clk);
-
 	state->activedemod = demod_cab;
 }
 
