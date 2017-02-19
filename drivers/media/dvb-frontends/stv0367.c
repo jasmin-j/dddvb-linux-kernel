@@ -2944,6 +2944,9 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	/* PLL enabled and used */
 	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
 
+	state->cab_state->mclk = stv0367cab_get_mclk(&state->fe, state->config->xtal);
+	state->cab_state->adc_clk = stv0367cab_get_adc_freq(&state->fe, state->config->xtal);
+
 	state->activedemod = demod_cab;
 }
 
@@ -3103,7 +3106,6 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 
 	stv0367_writereg(state, R367TER_I2CRPT, (0x08 | ((5 & 0x07) << 4)));
 
-	state->activedemod = demod_cab;
 	ter_state->pBER = 0;
 	ter_state->first_lock = 0;
 	ter_state->unlock_counter = 2;
