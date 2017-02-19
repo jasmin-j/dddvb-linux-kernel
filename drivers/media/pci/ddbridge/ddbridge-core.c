@@ -960,9 +960,6 @@ static int demod_attach_stv0367(struct ddb_input *input)
 		return -ENODEV;
 	}
 
-	/* init the demod */
-	(fe)->ops.init(fe);
-
 	fe->sec_priv = input;
 	dvb->i2c_gate_ctrl = fe->ops.i2c_gate_ctrl;
 	fe->ops.i2c_gate_ctrl = locked_gate_ctrl;
