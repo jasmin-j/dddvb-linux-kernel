@@ -2887,6 +2887,33 @@ EXPORT_SYMBOL(stv0367cab_attach);
  * Functions for operation on Digital Devices hardware
  */
 
+static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
+{
+/*	struct stv0367_state *state = fe->demodulator_priv;
+	u8 i2crpt = (0x08 | ((5 & 0x07) << 4)) & ~0x80;
+
+	if (enable)
+		i2crpt |= 0x80;
+	if (stv0367_writereg(state, R367TER_I2CRPT, i2crpt) < 0)
+		return -EIO;
+
+	return 0; */
+
+	struct stv0367_state *state = fe->demodulator_priv;
+
+	switch(state->activedemod) {
+	case demod_cab:
+		return stv0367cab_gate_ctrl(fe, enable);
+		break;
+	case demod_ter:
+	default:
+		return stv0367ter_gate_ctrl(fe, enable);
+		break;
+	}
+
+	return -EINVAL;
+}
+
 static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 {
 	dev_info(&state->i2c->dev, "switching to OFDM mode");
@@ -3038,9 +3065,11 @@ static int stv0367digitaldevices_sleep(struct dvb_frontend *fe)
 
 	switch(state->activedemod) {
 	case demod_ter:
+		state->activedemod = demod_none;
 		return stv0367ter_sleep(fe);
 		break;
 	case demod_cab:
+		state->activedemod = demod_none;
 		return stv0367cab_sleep(fe);
 		break;
 	default:
@@ -3101,9 +3130,9 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 	/* Clock setup */
 	stv0367_writereg(state, R367TER_ANACTRL, 0x0D); /* PLL bypassed and disabled */
 
-	/* IC runs at 54 MHz with a 27 MHz crystal */
-	stv0367_writereg(state, R367TER_PLLMDIV, 1);
-	stv0367_writereg(state, R367TER_PLLNDIV, 8);
+	/* IC runs at 58 MHz with a 27 MHz crystal */
+	stv0367_writereg(state, R367TER_PLLMDIV, 27);
+	stv0367_writereg(state, R367TER_PLLNDIV, 232);
 
 	/* ADC clock is equal to system clock */
 	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
@@ -3157,7 +3186,7 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 	},
 	.release = stv0367_release,
 /*	.sleep = stv0367digitaldevices_sleep, */
-	.i2c_gate_ctrl = stv0367ter_gate_ctrl,
+	.i2c_gate_ctrl = stv0367digitaldevices_gate_ctrl,
 	.set_frontend = stv0367digitaldevices_set_frontend,
 	.get_frontend = stv0367digitaldevices_get_frontend,
 	.get_tune_settings = stv0367_get_tune_settings,
