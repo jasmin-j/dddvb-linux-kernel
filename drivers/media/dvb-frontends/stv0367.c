@@ -2916,7 +2916,7 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 
 static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 {
-	dev_info(&state->i2c->dev, "switching to OFDM mode");
+	dev_info(&state->i2c->dev, "switching %02X to OFDM mode", state->config->demod_address);
 
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
@@ -2950,7 +2950,7 @@ static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 
 static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 {
-	dev_info(&state->i2c->dev, "switching to QAM mode");
+	dev_info(&state->i2c->dev, "switching %02X to QAM mode", state->config->demod_address);
 
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x01);
