@@ -1885,8 +1885,8 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 		stv0367_writereg(state, R367CAB_EQU_PNT_GAIN, 0xa7);
 		break;
 	case FE_CAB_MOD_QAM256:
-		stv0367_writereg(state, R367CAB_IQDEM_ADJ_AGC_REF, 0x94);
 		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x5a);
+		stv0367_writereg(state, R367CAB_IQDEM_ADJ_AGC_REF, 0x94);
 		stv0367_writereg(state, R367CAB_FSM_STATE, 0xa0);
 		if (SymbolRate > 4500000)
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
@@ -1941,12 +1941,12 @@ static u32 stv0367cab_set_derot_freq(struct stv0367_state *state,
 
 	dprintk("%s: sampled_if=0x%x\n", __func__, sampled_if);
 
-	/*stv0367_writereg(state, R367CAB_MIX_NCO_LL, sampled_if);
+	stv0367_writereg(state, R367CAB_MIX_NCO_LL, sampled_if);
 	stv0367_writereg(state, R367CAB_MIX_NCO_HL, (sampled_if >> 8));
-	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, (sampled_if >> 16)); */
-	stv0367_writereg(state, R367CAB_MIX_NCO_LL, 0x00);
+	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, (sampled_if >> 16));
+	/*stv0367_writereg(state, R367CAB_MIX_NCO_LL, 0x00);
 	stv0367_writereg(state, R367CAB_MIX_NCO_HL, 0x08);
-	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, 0x0b);
+	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, 0x0b);*/
 
 	return derot_hz;
 }
@@ -2099,7 +2099,7 @@ static u32 stv0367cab_set_srate(struct stv0367_state *state, u32 adc_hz,
 		/* AllPass filter must be disabled
 		when the adjacents filter is not used */
 #endif
-	stv0367_writebits(state, F367CAB_ALLPASSFILT_EN, 0);
+//	stv0367_writebits(state, F367CAB_ALLPASSFILT_EN, 0);
 
 	stv0367_writereg(state, R367CAB_SRC_NCO_LL, u32_tmp);
 	stv0367_writereg(state, R367CAB_SRC_NCO_LH, (u32_tmp >> 8));
@@ -2166,10 +2166,16 @@ static int stv0367cab_read_status(struct dvb_frontend *fe,
 
 	*status = 0;
 
-	if (stv0367_readbits(state, F367CAB_QAMFEC_LOCK)) {
+/*	if (stv0367_readbits(state, F367CAB_QAMFEC_LOCK)) {
 		*status |= FE_HAS_LOCK;
 		dprintk("%s: stv0367 has locked\n", __func__);
 	}
+*/
+	if (stv0367_readbits(state, F367CAB_DESCR_SYNCSTATE)) {
+		*status |= FE_HAS_LOCK;
+		dprintk("%s: stv0367 has locked\n", __func__);
+	}
+
 
 	return 0;
 }
@@ -2282,6 +2288,7 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 	} else
 		ifkhz = state->config->if_khz;
 
+	stvdebug = 1;
 	/* Timeouts calculation */
 	/* A max lock time of 25 ms is allowed for delayed AGC */
 	AGCTimeOut = 25;
@@ -2348,7 +2355,7 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 	/* Reset the TRL to ensure nothing starts until the
 	   AGC is stable which ensures a better lock time
 	*/
-	stv0367_writereg(state, R367CAB_CTRL_1, 0x04);
+	//stv0367_writereg(state, R367CAB_CTRL_1, 0x04);
 	/* Set AGC accumulation time to minimum and lock threshold to maximum
 	in order to speed up the AGC lock */
 	TrackAGCAccum = stv0367_readbits(state, F367CAB_AGC_ACCUMRSTSEL);
@@ -2438,8 +2445,12 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 		do {
 			usleep_range(5000, 7000);
 			LockTime += 5;
-			QAMFEC_Lock = stv0367_readbits(state,
+/*			QAMFEC_Lock = stv0367_readbits(state,
 							F367CAB_QAMFEC_LOCK);
+			pr_info("F367CAB_QAMFEC_LOCK: %u\n", QAMFEC_Lock); */
+			QAMFEC_Lock = stv0367_readbits(state,
+							F367CAB_DESCR_SYNCSTATE);
+			pr_info("F367CAB_DESCR_SYNCSTATE: %u\n", QAMFEC_Lock);
 		} while (!QAMFEC_Lock && (LockTime < FECTimeOut));
 	} else
 		QAMFEC_Lock = 0;
@@ -2521,6 +2532,8 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 		}
 
 	}
+
+	stvdebug = 0;
 
 	/* Set the AGC control values to tracking values */
 	stv0367_writebits(state, F367CAB_AGC_ACCUMRSTSEL, TrackAGCAccum);
