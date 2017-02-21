@@ -1840,11 +1840,11 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 	case FE_CAB_MOD_QAM64:
 		stv0367_writereg(state, R367CAB_IQDEM_ADJ_AGC_REF, 0x82);
 		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x5a);
-		if (SymbolRate > 45000000) {
+		if (SymbolRate > 4500000) {
 			stv0367_writereg(state, R367CAB_FSM_STATE, 0xb0);
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
 			stv0367_writereg(state, R367CAB_EQU_CRL_LPF_GAIN, 0xa5);
-		} else if (SymbolRate > 25000000) {
+		} else if (SymbolRate > 2500000) {
 			stv0367_writereg(state, R367CAB_FSM_STATE, 0xa0);
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
 			stv0367_writereg(state, R367CAB_EQU_CRL_LPF_GAIN, 0xa6);
@@ -1862,9 +1862,9 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x76);
 		stv0367_writereg(state, R367CAB_FSM_STATE, 0x90);
 		stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xb1);
-		if (SymbolRate > 45000000)
+		if (SymbolRate > 4500000)
 			stv0367_writereg(state, R367CAB_EQU_CRL_LPF_GAIN, 0xa7);
-		else if (SymbolRate > 25000000)
+		else if (SymbolRate > 2500000)
 			stv0367_writereg(state, R367CAB_EQU_CRL_LPF_GAIN, 0xa6);
 		else
 			stv0367_writereg(state, R367CAB_EQU_CRL_LPF_GAIN, 0x97);
@@ -1877,9 +1877,9 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 		stv0367_writereg(state, R367CAB_IQDEM_ADJ_AGC_REF, 0x94);
 		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x5a);
 		stv0367_writereg(state, R367CAB_FSM_STATE, 0xa0);
-		if (SymbolRate > 45000000)
+		if (SymbolRate > 4500000)
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
-		else if (SymbolRate > 25000000)
+		else if (SymbolRate > 2500000)
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
 		else
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xd1);
@@ -1928,9 +1928,12 @@ static u32 stv0367cab_set_derot_freq(struct stv0367_state *state,
 
 	dprintk("%s: sampled_if=0x%x\n", __func__, sampled_if);
 
-	stv0367_writereg(state, R367CAB_MIX_NCO_LL, sampled_if);
+	/*stv0367_writereg(state, R367CAB_MIX_NCO_LL, sampled_if);
 	stv0367_writereg(state, R367CAB_MIX_NCO_HL, (sampled_if >> 8));
-	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, (sampled_if >> 16));
+	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, (sampled_if >> 16)); */
+	stv0367_writereg(state, R367CAB_MIX_NCO_LL, 0x00);
+	stv0367_writereg(state, R367CAB_MIX_NCO_HL, 0x08);
+	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, 0x0b);
 
 	return derot_hz;
 }
@@ -2907,7 +2910,7 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 		break;
 	case demod_ter:
 	default:
-		return stv0367ter_gate_ctrl(fe, enable);
+		return stv0367cab_gate_ctrl(fe, enable);
 		break;
 	}
 
