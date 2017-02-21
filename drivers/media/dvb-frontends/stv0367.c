@@ -3242,10 +3242,9 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 	.get_frontend = stv0367digitaldevices_get_frontend,
 	.get_tune_settings = stv0367_get_tune_settings,
 	.read_status = stv0367digitaldevices_read_status,
-/*	.read_ber = stv0367ter_read_ber, ** too slow */
-/*	.read_signal_strength = stv0367_read_signal_strength,*/
-/*	.read_snr = stv0367ter_read_snr, */
-/*	.read_ucblocks = stv0367ter_read_ucblocks, */
+	.read_signal_strength = stv0367cab_read_strength,
+	.read_snr = stv0367cab_read_snr,
+	.read_ucblocks = stv0367cab_read_ucblcks,
 };
 
 struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *config,
