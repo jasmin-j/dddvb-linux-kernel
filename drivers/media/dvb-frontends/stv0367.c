@@ -169,6 +169,9 @@ int stv0367_writeregs(struct stv0367_state *state, u16 reg, u8 *data, int len)
 
 static int stv0367_writereg(struct stv0367_state *state, u16 reg, u8 data)
 {
+	if (i2cdebug)
+		dev_info(&state->i2c->dev, "[%02X] %04X: %02X", state->config->demod_address, reg, data);
+
 	return stv0367_writeregs(state, reg, &data, 1);
 }
 
@@ -279,6 +282,8 @@ static void stv0367_write_table(struct stv0367_state *state, struct st_register 
 		stv0367_writereg(state, regtable[i].addr, regtable[i].value);
 		i++;
 	}
+
+	dev_info(&state->i2c->dev, "%u regs/values written", i);
 }
 
 static void stv0367_pll_setup(struct stv0367_state *state)
@@ -3014,6 +3019,8 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 			pr_err("Invalid symbol rate\n");
 			return -EINVAL;
 		}
+
+		dev_info(&state->i2c->dev, "=== start cab ===");
 
 		return stv0367cab_set_frontend(fe);
 		break;
