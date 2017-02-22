@@ -281,25 +281,25 @@ static void stv0367_write_table(struct stv0367_state *state, const struct st_reg
 	}
 }
 
-static void stv0367_pll_setup(struct stv0367_state *state)
+static void stv0367_pll_setup(struct stv0367_state *state, u32 icspeed, u32 xtal)
 {
 	/* note on regs: R367TER_ and R367CAB_ defines each point to
 	   0xf0d8, so just use R367TER_ for both cases */
 
-	switch (state->config->icspeed) {
+	switch (icspeed) {
 	case STV0367_ICSPEED_58000:
-		switch (state->config->xtal) {
+		switch (xtal) {
 		default:
 		case 27000000:
 			dprintk("STV0367TER SetCLKgen for 58MHz IC and 27Mhz crystal\n");
-			stv0367_writereg(state, R367TER_PLLMDIV, 0x1b);
-			stv0367_writereg(state, R367TER_PLLNDIV, 0xe8);
+			stv0367_writereg(state, R367TER_PLLMDIV, 0x1b); /* PLLMDIV: 27 */
+			stv0367_writereg(state, R367TER_PLLNDIV, 0xe8); /* PLLNDIV: 232 */
 			break;
 		}
 		break;
 	default:
 	case STV0367_ICSPEED_53125:
-		switch (state->config->xtal) {
+		switch (xtal) {
 			/*set internal freq to 53.125MHz */
 		case 16000000:
 			stv0367_writereg(state, R367TER_PLLMDIV, 0x2);
@@ -983,7 +983,7 @@ static int stv0367ter_init(struct dvb_frontend *fe)
 	stv0367_write_table(state,
 		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_TER]);
 
-	stv0367_pll_setup(state);
+	stv0367_pll_setup(state, state->config->icspeed, state->config->xtal);
 
 	stv0367_writereg(state, R367TER_I2CRPT, 0xa0);
 	stv0367_writereg(state, R367TER_ANACTRL, 0x00);
@@ -2203,7 +2203,7 @@ static int stv0367cab_init(struct dvb_frontend *fe)
 	stv0367_write_table(state,
 		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_CAB]);
 
-	stv0367_pll_setup(state);
+	stv0367_pll_setup(state, state->config->icspeed, state->config->xtal);
 
 	switch (state->config->ts_mode) {
 	case STV0367_DVBCI_CLOCK:
@@ -2936,10 +2936,7 @@ static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x00); /* Set OFDM */
 
 	/* IC runs at 54 MHz with a 27 MHz crystal */
-	stv0367_writereg(state, R367TER_PLLMDIV, 1);
-	stv0367_writereg(state, R367TER_PLLNDIV, 8);
-	/* ADC clock is equal to system clock */
-	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
+	stv0367_pll_setup(state, STV0367_ICSPEED_53125, state->config->xtal);
 
 	msleep(50);
 	/* PLL enabled and used */
@@ -2970,13 +2967,7 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
 
 	/* IC runs at 58 MHz with a 27 MHz crystal */
-	stv0367_writereg(state, R367TER_PLLMDIV, 27);
-	stv0367_writereg(state, R367TER_PLLNDIV, 232);
-	/* lets test 27/53,125 */
-	/*stv0367_writereg(state, R367TER_PLLMDIV, 1);*/
-	/*stv0367_writereg(state, R367TER_PLLNDIV, 8);*/
-	/* ADC clock is equal to system clock */
-	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
+	stv0367_pll_setup(state, STV0367_ICSPEED_58000, state->config->xtal);
 
 	msleep(50);
 	/* PLL enabled and used */
@@ -3128,11 +3119,7 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 	stv0367_writereg(state, R367TER_ANACTRL, 0x0D); /* PLL bypassed and disabled */
 
 	/* IC runs at 58 MHz with a 27 MHz crystal */
-	stv0367_writereg(state, R367TER_PLLMDIV, 27);
-	stv0367_writereg(state, R367TER_PLLNDIV, 232);
-
-	/* ADC clock is equal to system clock */
-	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
+	stv0367_pll_setup(state, STV0367_ICSPEED_58000, state->config->xtal);
 
 	/* Tuner setup */
 	/* Buffer Q disabled, I Enabled, signed ADC */
