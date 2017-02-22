@@ -280,8 +280,6 @@ static void stv0367_write_table(struct stv0367_state *state, const struct st_reg
 		stv0367_writereg(state, regtable[i].addr, regtable[i].value);
 		i++;
 	}
-
-	pr_info("stv0367: %u regs/values written\n", i);
 }
 
 static void stv0367_pll_setup(struct stv0367_state *state)
@@ -345,8 +343,6 @@ static int stv0367ter_gate_ctrl(struct dvb_frontend *fe, int enable)
 	u8 tmp = stv0367_readreg(state, R367TER_I2CRPT);
 
 	dprintk("%s:\n", __func__);
-
-	pr_info("stv0367: === i2c ter gate %s ===\n", (enable ? "on" : "off"));
 
 	if (enable) {
 		stv0367_setbits(&tmp, F367TER_STOP_ENABLE, 0);
@@ -1766,8 +1762,6 @@ static int stv0367cab_gate_ctrl(struct dvb_frontend *fe, int enable)
 
 	dprintk("%s:\n", __func__);
 
-	pr_info("stv0367: === i2c ter gate %s ===\n", (enable ? "on" : "off"));
-
 	stv0367_writebits(state, F367CAB_I2CT_ON, (enable > 0) ? 1 : 0);
 
 	return 0;
@@ -1818,9 +1812,6 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 						 u32 SymbolRate,
 						 enum stv0367cab_mod QAMSize)
 {
-
-	pr_info("stv0367: === %s ===\n", __func__);
-
 	/* Set up qam_inversion / EQU_MAPPER */
 	if (state->cab_state->qam_inversion)
 		stv0367_writereg(state, R367CAB_EQU_MAPPER,
@@ -1929,8 +1920,6 @@ static u32 stv0367cab_set_derot_freq(struct stv0367_state *state,
 
 	dprintk("%s: adc_hz=%d derot_hz=%d\n", __func__, adc_hz, derot_hz);
 
-	pr_info("stv0367: === %s ===\n", __func__);
-
 	if (adc_khz != 0) {
 		if (derot_hz < 1000000)
 			derot_hz = adc_hz / 4; /* ZIF operation */
@@ -1950,9 +1939,6 @@ static u32 stv0367cab_set_derot_freq(struct stv0367_state *state,
 	stv0367_writereg(state, R367CAB_MIX_NCO_LL, sampled_if);
 	stv0367_writereg(state, R367CAB_MIX_NCO_HL, (sampled_if >> 8));
 	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, (sampled_if >> 16));
-	/*stv0367_writereg(state, R367CAB_MIX_NCO_LL, 0x00);
-	stv0367_writereg(state, R367CAB_MIX_NCO_HL, 0x08);
-	stv0367_writebits(state, F367CAB_MIX_NCO_INC_HH, 0x0b);*/
 
 	return derot_hz;
 }
@@ -1982,8 +1968,6 @@ static u32 stv0367cab_set_srate(struct stv0367_state *state, u32 adc_hz,
 	u32 adp_khz;
 
 	dprintk("%s:\n", __func__);
-
-	pr_info("stv0367: === %s ===\n", __func__);
 
 	/* Set Correction factor of SRC gain */
 	switch (QAMSize) {
@@ -2105,7 +2089,7 @@ static u32 stv0367cab_set_srate(struct stv0367_state *state, u32 adc_hz,
 		/* AllPass filter must be disabled
 		when the adjacents filter is not used */
 #endif
-//	stv0367_writebits(state, F367CAB_ALLPASSFILT_EN, 0);
+	stv0367_writebits(state, F367CAB_ALLPASSFILT_EN, 0);
 
 	stv0367_writereg(state, R367CAB_SRC_NCO_LL, u32_tmp);
 	stv0367_writereg(state, R367CAB_SRC_NCO_LH, (u32_tmp >> 8));
@@ -2280,8 +2264,6 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 	s32	tmp;
 
 	dprintk("%s:\n", __func__);
-
-	pr_info("stv0367: === %s ===\n", __func__);
 
 	stv0367_get_if_khz(state, &ifkhz);
 
@@ -2540,8 +2522,6 @@ static int stv0367cab_set_frontend(struct dvb_frontend *fe)
 
 	dprintk("%s: freq = %d, srate = %d\n", __func__,
 					p->frequency, p->symbol_rate);
-
-	pr_info("stv0367: === %s ===\n", __func__);
 
 	cab_state->derot_offset = 0;
 
@@ -2930,8 +2910,6 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 
 	struct stv0367_state *state = fe->demodulator_priv;
 
-	pr_info("stv0367: === %s ===\n", __func__);
-
 	switch(state->activedemod) {
 	case demod_cab:
 		return stv0367cab_gate_ctrl(fe, enable);
@@ -2948,8 +2926,6 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 {
 	dev_info(&state->i2c->dev, "switching %02X to OFDM mode", state->config->demod_address);
-
-	pr_info("stv0367: === %s ===\n", __func__);
 
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
@@ -2984,8 +2960,6 @@ static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 {
 	dev_info(&state->i2c->dev, "switching %02X to QAM mode", state->config->demod_address);
-
-	pr_info("stv0367: === %s ===\n", __func__);
 
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x01);
@@ -3120,24 +3094,16 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 {
 	struct stv0367ter_state *ter_state = state->ter_state;
 
-	pr_info("stv0367: === init start ===\n");
-
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x10);
-
-	pr_info("stv0367: === base init ===\n");
 
 	if (stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_BASE])
 		stv0367_write_table(state,
 			stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_BASE]);
 
-	pr_info("stv0367: === qam init ===\n");
-
 	stv0367_write_table(state,
 		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_CAB]);
 
 	stv0367_writereg(state, R367TER_TOPCTRL, 0x00);
-	pr_info("stv0367: === ofdm init ===\n");
-
 	stv0367_write_table(state,
 		stv0367_deftabs[state->defaultstab][STV0367_DEFTAB_TER]);
 
