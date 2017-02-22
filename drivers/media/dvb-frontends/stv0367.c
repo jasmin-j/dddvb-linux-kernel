@@ -2891,16 +2891,6 @@ EXPORT_SYMBOL(stv0367cab_attach);
 
 static int stv0367ddb_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
-/*	struct stv0367_state *state = fe->demodulator_priv;
-	u8 i2crpt = (0x08 | ((5 & 0x07) << 4)) & ~0x80;
-
-	if (enable)
-		i2crpt |= 0x80;
-	if (stv0367_writereg(state, R367TER_I2CRPT, i2crpt) < 0)
-		return -EIO;
-
-	return 0; */
-
 	struct stv0367_state *state = fe->demodulator_priv;
 
 	switch(state->activedemod) {
