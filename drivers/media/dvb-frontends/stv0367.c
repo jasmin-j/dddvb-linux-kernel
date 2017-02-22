@@ -2889,7 +2889,7 @@ EXPORT_SYMBOL(stv0367cab_attach);
  * Functions for operation on Digital Devices hardware
  */
 
-static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
+static int stv0367ddb_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 /*	struct stv0367_state *state = fe->demodulator_priv;
 	u8 i2crpt = (0x08 | ((5 & 0x07) << 4)) & ~0x80;
@@ -2916,7 +2916,7 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 	return -EINVAL;
 }
 
-static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
+static void stv0367ddb_setup_ter(struct stv0367_state *state)
 {
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
@@ -2945,7 +2945,7 @@ static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 	state->activedemod = demod_ter;
 }
 
-static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
+static void stv0367ddb_setup_cab(struct stv0367_state *state)
 {
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x01);
@@ -2979,20 +2979,20 @@ static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 	state->activedemod = demod_cab;
 }
 
-static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
+static int stv0367ddb_set_frontend(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 
 	switch (fe->dtv_property_cache.delivery_system) {
 	case SYS_DVBT:
 		if (state->activedemod != demod_ter)
-			stv0367digitaldevices_setup_ter(state);
+			stv0367ddb_setup_ter(state);
 
 		return stv0367ter_set_frontend(fe);
 		break;
 	case SYS_DVBC_ANNEX_A:
 		if (state->activedemod != demod_cab)
-			stv0367digitaldevices_setup_cab(state);
+			stv0367ddb_setup_cab(state);
 
 		/* protect against division error oopses */
 		if (fe->dtv_property_cache.symbol_rate == 0) {
@@ -3009,7 +3009,7 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 	return -EINVAL;
 }
 
-static int stv0367digitaldevices_get_frontend(struct dvb_frontend *fe,
+static int stv0367ddb_get_frontend(struct dvb_frontend *fe,
 				   struct dtv_frontend_properties *p)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
@@ -3028,7 +3028,7 @@ static int stv0367digitaldevices_get_frontend(struct dvb_frontend *fe,
 	return -EINVAL;
 }
 
-static int stv0367digitaldevices_read_status(struct dvb_frontend *fe,
+static int stv0367ddb_read_status(struct dvb_frontend *fe,
 				  enum fe_status *status)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
@@ -3047,7 +3047,7 @@ static int stv0367digitaldevices_read_status(struct dvb_frontend *fe,
 	return -EINVAL;
 }
 
-static int stv0367digitaldevices_sleep(struct dvb_frontend *fe)
+static int stv0367ddb_sleep(struct dvb_frontend *fe)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 
@@ -3067,7 +3067,7 @@ static int stv0367digitaldevices_sleep(struct dvb_frontend *fe)
 	return -EINVAL;
 }
 
-static int stv0367digitaldevices_init(struct stv0367_state *state)
+static int stv0367ddb_init(struct stv0367_state *state)
 {
 	struct stv0367ter_state *ter_state = state->ter_state;
 
@@ -3145,7 +3145,7 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 	return 0;
 }
 
-static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
+static const struct dvb_frontend_ops stv0367ddb_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT },
 	.info = {
 		.name			= "ST STV0367 DDB DVB-C/T",
@@ -3169,18 +3169,18 @@ static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 			FE_CAN_MUTE_TS
 	},
 	.release = stv0367_release,
-	.sleep = stv0367digitaldevices_sleep,
-	.i2c_gate_ctrl = stv0367digitaldevices_gate_ctrl,
-	.set_frontend = stv0367digitaldevices_set_frontend,
-	.get_frontend = stv0367digitaldevices_get_frontend,
+	.sleep = stv0367ddb_sleep,
+	.i2c_gate_ctrl = stv0367ddb_gate_ctrl,
+	.set_frontend = stv0367ddb_set_frontend,
+	.get_frontend = stv0367ddb_get_frontend,
 	.get_tune_settings = stv0367_get_tune_settings,
-	.read_status = stv0367digitaldevices_read_status,
+	.read_status = stv0367ddb_read_status,
 	.read_signal_strength = stv0367cab_read_strength,
 	.read_snr = stv0367cab_read_snr,
 	.read_ucblocks = stv0367cab_read_ucblcks,
 };
 
-struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *config,
+struct dvb_frontend *stv0367ddb_attach(const struct stv0367_config *config,
 				   struct i2c_adapter *i2c)
 {
 	struct stv0367_state *state = NULL;
@@ -3205,7 +3205,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	cab_state->search_range = 280000;
 	cab_state->qamfec_status_reg = F367CAB_DESCR_SYNCSTATE;
 	state->cab_state = cab_state;
-	state->fe.ops = stv0367digitaldevices_ops;
+	state->fe.ops = stv0367ddb_ops;
 	state->fe.demodulator_priv = state;
 	state->chip_id = stv0367_readreg(state, 0xf000);
 
@@ -3228,7 +3228,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 		state->fe.ops.info.name, state->chip_id,
 		config->demod_address);
 
-	stv0367digitaldevices_init(state);
+	stv0367ddb_init(state);
 
 	return &state->fe;
 
@@ -3237,7 +3237,7 @@ error:
 	kfree(state);
 	return NULL;
 }
-EXPORT_SYMBOL(stv0367digitaldevices_attach);
+EXPORT_SYMBOL(stv0367ddb_attach);
 
 MODULE_PARM_DESC(debug, "Set debug");
 MODULE_PARM_DESC(i2c_debug, "Set i2c debug");
