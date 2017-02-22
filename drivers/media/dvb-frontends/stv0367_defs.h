@@ -38,7 +38,7 @@ struct st_register {
 };
 
 /* values for STV4100 XTAL=30M int clk=53.125M*/
-static struct st_register def0367ter[] = {
+static const struct st_register def0367ter[] = {
 	{R367TER_ID,		0x60},
 	{R367TER_I2CRPT,	0xa0},
 	/* {R367TER_I2CRPT,	0x22},*/
@@ -488,7 +488,7 @@ static struct st_register def0367ter[] = {
 	{0x0000,		0x00},
 };
 
-static struct st_register def0367cab[] = {
+static const struct st_register def0367cab[] = {
 	{R367CAB_ID,		0x60},
 	{R367CAB_I2CRPT,	0xa0},
 	/*{R367CAB_I2CRPT,	0x22},*/
@@ -686,7 +686,7 @@ static struct st_register def0367cab[] = {
  *
  **************/
 
-static struct st_register def0367dd_ofdm[] = {
+static const struct st_register def0367dd_ofdm[] = {
 	{ R367TER_AGC2MAX,                0xff },
 	{ R367TER_AGC2MIN,                0x00 },
 	{ R367TER_AGC1MAX,                0xff },
@@ -1094,7 +1094,7 @@ static struct st_register def0367dd_ofdm[] = {
 	{ 0x0000, 0x00 } /* EOT */
 };
 
-static struct st_register def0367dd_qam[] = {
+static const struct st_register def0367dd_qam[] = {
 	{ R367CAB_CTRL_1,                  0x06 }, /* Orginal 0x04 */
 	{ R367CAB_CTRL_2,                  0x03 },
 	{ R367CAB_IT_STATUS1,              0x2b },
@@ -1259,7 +1259,7 @@ static struct st_register def0367dd_qam[] = {
 	{ 0x0000, 0x00 } /* EOT */
 };
 
-static struct st_register def0367dd_base[] = {
+static const struct st_register def0367dd_base[] = {
 	{ R367TER_IOCFG0,     0x80 },
 	{ R367TER_DAC0R,      0x00 },
 	{ R367TER_IOCFG1,     0x00 },
@@ -1289,7 +1289,7 @@ static struct st_register def0367dd_base[] = {
  * Tables combined
  */
 
-static struct st_register *stv0367_deftabs[STV0367_DEFVARIANT_MAX][STV0367_DEFTAB_MAX] = {
+static const struct st_register *stv0367_deftabs[STV0367_DEFVARIANT_MAX][STV0367_DEFTAB_MAX] = {
 	/* generic default/init tabs */
 	{ def0367ter, def0367cab, NULL },
 	/* default tabs for digital devices cards/flex modules */

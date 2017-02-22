@@ -271,7 +271,7 @@ static u8 stv0367_getbits(u8 reg, u32 label)
 }
 #endif
 
-static void stv0367_write_table(struct stv0367_state *state, struct st_register *regtable)
+static void stv0367_write_table(struct stv0367_state *state, const struct st_register *regtable)
 {
 	int i = 0;
 
