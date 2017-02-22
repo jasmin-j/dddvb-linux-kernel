@@ -952,11 +952,11 @@ static int demod_attach_stv0367(struct ddb_input *input)
 	struct dvb_frontend *fe;
 
 	/* attach DVB-T frontend */
-	fe = dvb->fe = dvb_attach(stv0367digitaldevices_attach,
+	fe = dvb->fe = dvb_attach(stv0367ddb_attach,
 		(input->nr & 1) ? &stv0367_port1 : &stv0367_port0, i2c);
 
 	if (!dvb->fe) {
-		pr_err("stv0367ter_attach failed (not found?)\n");
+		pr_err("stv0367ddb_attach failed (not found?)\n");
 		return -ENODEV;
 	}
 
