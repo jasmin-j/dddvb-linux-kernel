@@ -169,8 +169,6 @@ int stv0367_writeregs(struct stv0367_state *state, u16 reg, u8 *data, int len)
 
 static int stv0367_writereg(struct stv0367_state *state, u16 reg, u8 data)
 {
-	dev_info(&state->i2c->dev, "[%02X] %04X = %02X", state->config->demod_address, reg, data);
-
 	return stv0367_writeregs(state, reg, &data, 1);
 }
 
@@ -2291,7 +2289,6 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 
 	stv0367_get_if_khz(state, &ifkhz);
 
-	stvdebug = 1;
 	/* Timeouts calculation */
 	/* A max lock time of 25 ms is allowed for delayed AGC */
 	AGCTimeOut = 25;
@@ -2535,8 +2532,6 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 		}
 
 	}
-
-	stvdebug = 0;
 
 	/* Set the AGC control values to tracking values */
 	stv0367_writebits(state, F367CAB_AGC_ACCUMRSTSEL, TrackAGCAccum);
