@@ -3000,7 +3000,6 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 		return stv0367ter_set_frontend(fe);
 		break;
 	case SYS_DVBC_ANNEX_A:
-		/* TODO */
 		if (state->activedemod != demod_cab)
 			stv0367digitaldevices_setup_cab(state);
 
