@@ -329,6 +329,17 @@ static void stv0367_pll_setup(struct stv0367_state *state)
 	stv0367_writereg(state, R367TER_PLLSETUP, 0x18);
 }
 
+static int stv0367_get_if_khz(struct stv0367_state *state, u32 *ifkhz)
+{
+	if (state->auto_if_khz && state->fe.ops.tuner_ops.get_if_frequency) {
+		state->fe.ops.tuner_ops.get_if_frequency(&state->fe, ifkhz);
+		*ifkhz = *ifkhz / 1000; /* hz -> khz */
+	} else
+		*ifkhz = state->config->if_khz;
+
+	return 0;
+}
+
 static int stv0367ter_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 	struct stv0367_state *state = fe->demodulator_priv;
@@ -1008,11 +1019,7 @@ static int stv0367ter_algo(struct dvb_frontend *fe)
 
 	dprintk("%s:\n", __func__);
 
-	if (state->auto_if_khz && fe->ops.tuner_ops.get_if_frequency) {
-		fe->ops.tuner_ops.get_if_frequency(fe, &ifkhz);
-		ifkhz = ifkhz / 1000;
-	} else
-		ifkhz = state->config->if_khz;
+	stv0367_get_if_khz(state, &ifkhz);
 
 	ter_state->frequency = p->frequency;
 	ter_state->force = FE_TER_FORCENONE
@@ -2282,11 +2289,7 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 
 	pr_info("stv0367: === %s ===\n", __func__);
 
-	if (state->auto_if_khz && state->fe.ops.tuner_ops.get_if_frequency) {
-		state->fe.ops.tuner_ops.get_if_frequency(&state->fe, &ifkhz);
-		ifkhz = ifkhz / 1000;
-	} else
-		ifkhz = state->config->if_khz;
+	stv0367_get_if_khz(state, &ifkhz);
 
 	stvdebug = 1;
 	/* Timeouts calculation */
@@ -2606,11 +2609,13 @@ static int stv0367cab_get_frontend(struct dvb_frontend *fe,
 {
 	struct stv0367_state *state = fe->demodulator_priv;
 	struct stv0367cab_state *cab_state = state->cab_state;
+	u32 ifkhz = 0;
 
 	enum stv0367cab_mod QAMSize;
 
 	dprintk("%s:\n", __func__);
 
+	stv0367_get_if_khz(state, &ifkhz);
 	p->symbol_rate = stv0367cab_GetSymbolRate(state, cab_state->mclk);
 
 	QAMSize = stv0367_readbits(state, F367CAB_QAM_MODE);
@@ -2638,19 +2643,19 @@ static int stv0367cab_get_frontend(struct dvb_frontend *fe,
 
 	dprintk("%s: tuner frequency = %d\n", __func__, p->frequency);
 
-	if (state->config->if_khz == 0) {
+	if (ifkhz == 0) {
 		p->frequency +=
 			(stv0367cab_get_derot_freq(state, cab_state->adc_clk) -
 			cab_state->adc_clk / 4000);
 		return 0;
 	}
 
-	if (state->config->if_khz > cab_state->adc_clk / 1000)
-		p->frequency += (state->config->if_khz
+	if (ifkhz > cab_state->adc_clk / 1000)
+		p->frequency += (ifkhz
 			- stv0367cab_get_derot_freq(state, cab_state->adc_clk)
 			- cab_state->adc_clk / 1000);
 	else
-		p->frequency += (state->config->if_khz
+		p->frequency += (ifkhz
 			- stv0367cab_get_derot_freq(state, cab_state->adc_clk));
 
 	return 0;
