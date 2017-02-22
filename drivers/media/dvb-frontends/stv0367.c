@@ -2889,23 +2889,6 @@ EXPORT_SYMBOL(stv0367cab_attach);
  * Functions for operation on Digital Devices hardware
  */
 
-static int stv0367ddb_gate_ctrl(struct dvb_frontend *fe, int enable)
-{
-	struct stv0367_state *state = fe->demodulator_priv;
-
-	switch(state->activedemod) {
-	case demod_cab:
-		return stv0367cab_gate_ctrl(fe, enable);
-		break;
-	case demod_ter:
-	default:
-		return stv0367cab_gate_ctrl(fe, enable);
-		break;
-	}
-
-	return -EINVAL;
-}
-
 static void stv0367ddb_setup_ter(struct stv0367_state *state)
 {
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
@@ -3160,7 +3143,7 @@ static const struct dvb_frontend_ops stv0367ddb_ops = {
 	},
 	.release = stv0367_release,
 	.sleep = stv0367ddb_sleep,
-	.i2c_gate_ctrl = stv0367ddb_gate_ctrl,
+	.i2c_gate_ctrl = stv0367cab_gate_ctrl, /* valid for TER and CAB */
 	.set_frontend = stv0367ddb_set_frontend,
 	.get_frontend = stv0367ddb_get_frontend,
 	.get_tune_settings = stv0367_get_tune_settings,
