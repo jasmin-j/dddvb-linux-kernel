@@ -3162,7 +3162,7 @@ static int stv0367digitaldevices_init(struct stv0367_state *state)
 static const struct dvb_frontend_ops stv0367digitaldevices_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT },
 	.info = {
-		.name			= "ST STV0367 DVB-C DVB-T (DD)",
+		.name			= "ST STV0367 DDB DVB-C/T",
 		.frequency_min		= 47000000,
 		.frequency_max		= 862000000,
 		.frequency_stepsize	= 15625,
@@ -3238,9 +3238,9 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	if ((state->chip_id != 0x50) && (state->chip_id != 0x60))
 		goto error;
 
-	dev_info(&i2c->dev, "Found %s with ChipID %02X at adr %02X on %s\n",
+	dev_info(&i2c->dev, "Found %s with ChipID %02X at adr %02X\n",
 		state->fe.ops.info.name, state->chip_id,
-		config->demod_address, dev_name(&state->i2c->dev));
+		config->demod_address);
 
 	stv0367digitaldevices_init(state);
 
