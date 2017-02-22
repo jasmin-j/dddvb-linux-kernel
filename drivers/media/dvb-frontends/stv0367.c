@@ -63,6 +63,7 @@ struct stv0367cab_state {
 	u32 freq_khz;			/* found frequency (in kHz)	*/
 	u32 symbol_rate;		/* found symbol rate (in Bds)	*/
 	enum fe_spectral_inversion spect_inv; /* Spectrum Inversion	*/
+	u32 qamfec_status_reg;		/* status reg to poll for FEC Lock */
 };
 
 struct stv0367ter_state {
@@ -103,7 +104,6 @@ struct stv0367_state {
 	u8 full_reinit;
 	u8 auto_if_khz;
 	enum active_demod_state activedemod;
-	u32 qamfec_status_reg;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -2150,8 +2150,8 @@ static int stv0367cab_read_status(struct dvb_frontend *fe,
 
 	*status = 0;
 
-	if (stv0367_readbits(state, (state->qamfec_status_reg ?
-		state->qamfec_status_reg : F367CAB_QAMFEC_LOCK))) {
+	if (stv0367_readbits(state, (state->cab_state->qamfec_status_reg ?
+		state->cab_state->qamfec_status_reg : F367CAB_QAMFEC_LOCK))) {
 		*status |= FE_HAS_LOCK;
 		dprintk("%s: stv0367 has locked\n", __func__);
 	}
@@ -2418,8 +2418,8 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 			usleep_range(5000, 7000);
 			LockTime += 5;
 
-			QAMFEC_Lock = stv0367_readbits(state, (state->qamfec_status_reg ?
-				state->qamfec_status_reg : F367CAB_QAMFEC_LOCK));
+			QAMFEC_Lock = stv0367_readbits(state, (state->cab_state->qamfec_status_reg ?
+				state->cab_state->qamfec_status_reg : F367CAB_QAMFEC_LOCK));
 		} while (!QAMFEC_Lock && (LockTime < FECTimeOut));
 	} else
 		QAMFEC_Lock = 0;
@@ -2858,6 +2858,7 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->i2c = i2c;
 	state->config = config;
 	cab_state->search_range = 280000;
+	cab_state->qamfec_status_reg = F367CAB_QAMFEC_LOCK;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367cab_ops;
 	state->fe.demodulator_priv = state;
@@ -2868,7 +2869,6 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->defaultstab = STV0367_DEFVARIANT_GENERIC;
 	state->full_reinit = 1;
 	state->auto_if_khz = 0;
-	state->qamfec_status_reg = F367CAB_QAMFEC_LOCK;
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -3217,6 +3217,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->config = config;
 	state->ter_state = ter_state;
 	cab_state->search_range = 280000;
+	cab_state->qamfec_status_reg = F367CAB_DESCR_SYNCSTATE;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
@@ -3228,7 +3229,6 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->full_reinit = 0;
 	state->auto_if_khz = 1;
 	state->activedemod = demod_none;
-	state->qamfec_status_reg = F367CAB_DESCR_SYNCSTATE;
 
 	state->chip_id = stv0367_readreg(state, R367TER_ID);
 
