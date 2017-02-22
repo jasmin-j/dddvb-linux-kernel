@@ -104,6 +104,7 @@ struct stv0367_state {
 	u8 full_reinit;
 	u8 auto_if_khz;
 	enum active_demod_state activedemod;
+	u32 qamfec_status_reg;
 };
 
 #define RF_LOOKUP_TABLE_SIZE  31
@@ -2171,16 +2172,11 @@ static int stv0367cab_read_status(struct dvb_frontend *fe,
 
 	*status = 0;
 
-/*	if (stv0367_readbits(state, F367CAB_QAMFEC_LOCK)) {
+	if (stv0367_readbits(state, (state->qamfec_status_reg ?
+		state->qamfec_status_reg : F367CAB_QAMFEC_LOCK))) {
 		*status |= FE_HAS_LOCK;
 		dprintk("%s: stv0367 has locked\n", __func__);
 	}
-*/
-	if (stv0367_readbits(state, F367CAB_DESCR_SYNCSTATE)) {
-		*status |= FE_HAS_LOCK;
-		dprintk("%s: stv0367 has locked\n", __func__);
-	}
-
 
 	return 0;
 }
@@ -2445,12 +2441,9 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 		do {
 			usleep_range(5000, 7000);
 			LockTime += 5;
-/*			QAMFEC_Lock = stv0367_readbits(state,
-							F367CAB_QAMFEC_LOCK);
-			pr_info("F367CAB_QAMFEC_LOCK: %u\n", QAMFEC_Lock); */
-			QAMFEC_Lock = stv0367_readbits(state,
-							F367CAB_DESCR_SYNCSTATE);
-			pr_info("F367CAB_DESCR_SYNCSTATE: %u\n", QAMFEC_Lock);
+
+			QAMFEC_Lock = stv0367_readbits(state, (state->qamfec_status_reg ?
+				state->qamfec_status_reg : F367CAB_QAMFEC_LOCK));
 		} while (!QAMFEC_Lock && (LockTime < FECTimeOut));
 	} else
 		QAMFEC_Lock = 0;
@@ -2902,6 +2895,7 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->defaultstab = STV0367_DEFVARIANT_GENERIC;
 	state->full_reinit = 1;
 	state->auto_if_khz = 0;
+	state->qamfec_status_reg = F367CAB_QAMFEC_LOCK;
 
 	dprintk("%s: chip_id = 0x%x\n", __func__, state->chip_id);
 
@@ -3282,6 +3276,7 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->full_reinit = 0;
 	state->auto_if_khz = 1;
 	state->activedemod = demod_none;
+	state->qamfec_status_reg = F367CAB_DESCR_SYNCSTATE;
 
 	state->chip_id = stv0367_readreg(state, R367TER_ID);
 
