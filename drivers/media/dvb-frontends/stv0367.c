@@ -63,7 +63,6 @@ struct stv0367cab_state {
 	u32 freq_khz;			/* found frequency (in kHz)	*/
 	u32 symbol_rate;		/* found symbol rate (in Bds)	*/
 	enum fe_spectral_inversion spect_inv; /* Spectrum Inversion	*/
-	u32 qam_inversion;
 };
 
 struct stv0367ter_state {
@@ -1812,13 +1811,8 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 						 u32 SymbolRate,
 						 enum stv0367cab_mod QAMSize)
 {
-	/* Set up qam_inversion / EQU_MAPPER */
-	if (state->cab_state->qam_inversion)
-		stv0367_writereg(state, R367CAB_EQU_MAPPER,
-			state->cab_state->qam_inversion | QAMSize);
 	/* Set QAM size */
-	else
-		stv0367_writebits(state, F367CAB_QAM_MODE, QAMSize);
+	stv0367_writebits(state, F367CAB_QAM_MODE, QAMSize);
 
 	/* Set Registers settings specific to the QAM size */
 	switch (QAMSize) {
@@ -1882,8 +1876,8 @@ static enum stv0367cab_mod stv0367cab_SetQamSize(struct stv0367_state *state,
 		stv0367_writereg(state, R367CAB_EQU_PNT_GAIN, 0xa7);
 		break;
 	case FE_CAB_MOD_QAM256:
-		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x5a);
 		stv0367_writereg(state, R367CAB_IQDEM_ADJ_AGC_REF, 0x94);
+		stv0367_writereg(state, R367CAB_AGC_PWR_REF_L, 0x5a);
 		stv0367_writereg(state, R367CAB_FSM_STATE, 0xa0);
 		if (SymbolRate > 4500000)
 			stv0367_writereg(state, R367CAB_EQU_CTR_LPF_GAIN, 0xc1);
@@ -2333,7 +2327,7 @@ enum stv0367_cab_signal_type stv0367cab_algo(struct stv0367_state *state,
 	/* Reset the TRL to ensure nothing starts until the
 	   AGC is stable which ensures a better lock time
 	*/
-	//stv0367_writereg(state, R367CAB_CTRL_1, 0x04);
+	stv0367_writereg(state, R367CAB_CTRL_1, 0x04);
 	/* Set AGC accumulation time to minimum and lock threshold to maximum
 	in order to speed up the AGC lock */
 	TrackAGCAccum = stv0367_readbits(state, F367CAB_AGC_ACCUMRSTSEL);
@@ -2864,7 +2858,6 @@ struct dvb_frontend *stv0367cab_attach(const struct stv0367_config *config,
 	state->i2c = i2c;
 	state->config = config;
 	cab_state->search_range = 280000;
-	cab_state->qam_inversion = 0;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367cab_ops;
 	state->fe.demodulator_priv = state;
@@ -2925,8 +2918,6 @@ static int stv0367digitaldevices_gate_ctrl(struct dvb_frontend *fe, int enable)
 
 static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 {
-	dev_info(&state->i2c->dev, "switching %02X to OFDM mode", state->config->demod_address);
-
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x00); /* R367CAB_CTRL_1 */
@@ -2959,8 +2950,6 @@ static void stv0367digitaldevices_setup_ter(struct stv0367_state *state)
 
 static void stv0367digitaldevices_setup_cab(struct stv0367_state *state)
 {
-	dev_info(&state->i2c->dev, "switching %02X to QAM mode", state->config->demod_address);
-
 	stv0367_writereg(state, R367TER_DEBUG_LT4, 0x00);
 	stv0367_writereg(state, R367TER_DEBUG_LT5, 0x01);
 	stv0367_writereg(state, R367TER_DEBUG_LT6, 0x06); /* R367CAB_CTRL_1 */
@@ -3020,8 +3009,6 @@ static int stv0367digitaldevices_set_frontend(struct dvb_frontend *fe)
 			pr_err("Invalid symbol rate\n");
 			return -EINVAL;
 		}
-
-		dev_info(&state->i2c->dev, "=== start cab ===");
 
 		return stv0367cab_set_frontend(fe);
 		break;
@@ -3230,7 +3217,6 @@ struct dvb_frontend *stv0367digitaldevices_attach(const struct stv0367_config *c
 	state->config = config;
 	state->ter_state = ter_state;
 	cab_state->search_range = 280000;
-	cab_state->qam_inversion = 2 << 6;
 	state->cab_state = cab_state;
 	state->fe.ops = stv0367digitaldevices_ops;
 	state->fe.demodulator_priv = state;
