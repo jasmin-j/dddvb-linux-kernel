@@ -64,6 +64,8 @@ struct cxd2841er_priv {
 	u8				ts_reg_val;
 	u8				i2c_addr_slvx;
 	u8				i2c_addr_slvt;
+	u8				curbankx;
+	u8				curbankt;
 	const struct cxd2841er_config	*config;
 	enum cxd2841er_state		state;
 	u8				system;
@@ -233,6 +235,23 @@ static int cxd2841er_write_regs(struct cxd2841er_priv *priv,
 			.buf = buf,
 		}
 	};
+
+	switch (addr) {
+	case I2C_SLVX:
+		if (reg == 0x00)
+			priv->curbankx = data[0];
+		else
+			pr_info("[%02X SLVX] %02X/%02X = %*ph\n", priv->i2c_addr_slvx, priv->curbankx, reg, len, data);
+		break;
+	case I2C_SLVT:
+		if (reg == 0x00)
+			priv->curbankt = data[0];
+		else
+			pr_info("[%02X SLVT] %02X/%02X = %*ph\n", priv->i2c_addr_slvt, priv->curbankt, reg, len, data);
+		break;
+	default:
+		pr_info("UNKNOWN I2C WRITE!\n");
+	}
 
 	if (len + 1 >= sizeof(buf)) {
 		dev_warn(&priv->i2c->dev, "wr reg=%04x: len=%d is too big!\n",
@@ -499,6 +518,8 @@ static int cxd2841er_shutdown_to_sleep_tc(struct cxd2841er_priv *priv);
 static int cxd2841er_retune_active(struct cxd2841er_priv *priv,
 				   struct dtv_frontend_properties *p)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_ACTIVE_S &&
 			priv->state != STATE_ACTIVE_TC) {
@@ -607,6 +628,8 @@ static int cxd2841er_sleep_s_to_shutdown(struct cxd2841er_priv *priv)
 
 static int cxd2841er_sleep_tc_to_shutdown(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_SLEEP_TC) {
 		dev_dbg(&priv->i2c->dev, "%s(): invalid demod state %d\n",
@@ -627,6 +650,8 @@ static int cxd2841er_sleep_tc_to_shutdown(struct cxd2841er_priv *priv)
 
 static int cxd2841er_active_t_to_sleep_tc(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_ACTIVE_TC) {
 		dev_err(&priv->i2c->dev, "%s(): invalid state %d\n",
@@ -663,6 +688,8 @@ static int cxd2841er_active_t_to_sleep_tc(struct cxd2841er_priv *priv)
 
 static int cxd2841er_active_t2_to_sleep_tc(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_ACTIVE_TC) {
 		dev_err(&priv->i2c->dev, "%s(): invalid state %d\n",
@@ -709,6 +736,8 @@ static int cxd2841er_active_t2_to_sleep_tc(struct cxd2841er_priv *priv)
 
 static int cxd2841er_active_c_to_sleep_tc(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_ACTIVE_TC) {
 		dev_err(&priv->i2c->dev, "%s(): invalid state %d\n",
@@ -748,6 +777,8 @@ static int cxd2841er_active_c_to_sleep_tc(struct cxd2841er_priv *priv)
 
 static int cxd2841er_active_i_to_sleep_tc(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_ACTIVE_TC) {
 		dev_err(&priv->i2c->dev, "%s(): invalid state %d\n",
@@ -847,6 +878,8 @@ static int cxd2841er_shutdown_to_sleep_tc(struct cxd2841er_priv *priv)
 {
 	u8 data = 0;
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state != STATE_SHUTDOWN) {
 		dev_dbg(&priv->i2c->dev, "%s(): invalid demod state %d\n",
@@ -917,11 +950,16 @@ static int cxd2841er_shutdown_to_sleep_tc(struct cxd2841er_priv *priv)
 	}
 
 	priv->state = STATE_SLEEP_TC;
+
+	pr_info("=== %s end / flags: %d ===\n", __func__, priv->flags);
+
 	return 0;
 }
 
 static int cxd2841er_tune_done(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	/* Set SLV-T Bank : 0x00 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0, 0);
@@ -937,6 +975,8 @@ static void cxd2841er_set_ts_clock_mode(struct cxd2841er_priv *priv,
 					u8 system)
 {
 	u8 serial_ts, ts_rate_ctrl_off, ts_in_off;
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	/* Set SLV-T Bank : 0x00 */
@@ -993,6 +1033,8 @@ static void cxd2841er_set_ts_clock_mode(struct cxd2841er_priv *priv,
 static u8 cxd2841er_chip_id(struct cxd2841er_priv *priv)
 {
 	u8 chip_id = 0;
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (cxd2841er_write_reg(priv, I2C_SLVT, 0, 0) == 0)
@@ -1684,6 +1726,8 @@ static int cxd2841er_read_ber_t(struct cxd2841er_priv *priv,
 
 static int cxd2841er_freeze_regs(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	/*
 	 * Freeze registers: ensure multiple separate register reads
 	 * are from the same snapshot
@@ -1694,6 +1738,8 @@ static int cxd2841er_freeze_regs(struct cxd2841er_priv *priv)
 
 static int cxd2841er_unfreeze_regs(struct cxd2841er_priv *priv)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	/*
 	 * un-freeze registers
 	 */
@@ -2155,6 +2201,8 @@ static int cxd2841er_dvbt2_set_profile(
 	u8 tune_mode;
 	u8 seq_not2d_time;
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	switch (profile) {
 	case DVBT2_PROFILE_BASE:
@@ -2189,6 +2237,8 @@ static int cxd2841er_dvbt2_set_profile(
 static int cxd2841er_dvbt2_set_plp_config(struct cxd2841er_priv *priv,
 					  u8 is_auto, u8 plp_id)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	if (is_auto) {
 		dev_dbg(&priv->i2c->dev,
 			"%s() using auto PLP selection\n", __func__);
@@ -2293,6 +2343,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		{0x25, 0xA0, 0x36, 0x8D, 0x2E, 0x94, 0x28, 0x9B,
 			0x32, 0x90, 0x2C, 0x9D, 0x29, 0x99}  /* 41MHz XTal   */
 	};
+
+	pr_info("=== %s ===\n", __func__);
 
 	/* Set SLV-T Bank : 0x20 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x20);
@@ -2517,6 +2569,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 			0x00, 0xE6, 0x23, 0xA4}  /* 41MHz XTal   */
 	};
 
+	pr_info("=== %s ===\n", __func__);
+
 	/* Set SLV-T Bank : 0x13 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x13);
 	/* Echo performance optimization setting */
@@ -2729,6 +2783,8 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 			0xCF, 0x00, 0xE6, 0x23, 0xA4}, /* 41MHz XTal   */
 	};
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s() bandwidth=%u\n", __func__, bandwidth);
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
@@ -2862,6 +2918,8 @@ static int cxd2841er_sleep_tc_to_active_c_band(struct cxd2841er_priv *priv,
 	u8 b10_b6[3];
 	u32 iffreq, ifhz;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (bandwidth != 6000000 &&
 			bandwidth != 7000000 &&
 			bandwidth != 8000000) {
@@ -2939,6 +2997,8 @@ static int cxd2841er_sleep_tc_to_active_t(struct cxd2841er_priv *priv,
 	u8 data[2] = { 0x09, 0x54 };
 	u8 data24m[3] = {0xDC, 0x6C, 0x00};
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	cxd2841er_set_ts_clock_mode(priv, SYS_DVBT);
 	/* Set SLV-X Bank : 0x00 */
@@ -3012,6 +3072,8 @@ static int cxd2841er_sleep_tc_to_active_t2(struct cxd2841er_priv *priv,
 					   u32 bandwidth)
 {
 	u8 data[MAX_WRITE_REGSIZE];
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	cxd2841er_set_ts_clock_mode(priv, SYS_DVBT2);
@@ -3170,6 +3232,8 @@ static int cxd2841er_sleep_tc_to_active_i(struct cxd2841er_priv *priv,
 	u8 data24m[2] = {0x60, 0x00};
 	u8 data24m2[3] = {0xB7, 0x1B, 0x00};
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	cxd2841er_set_ts_clock_mode(priv, SYS_DVBT);
 	/* Set SLV-X Bank : 0x00 */
@@ -3245,6 +3309,8 @@ static int cxd2841er_sleep_tc_to_active_c(struct cxd2841er_priv *priv,
 					  u32 bandwidth)
 {
 	u8 data[2] = { 0x09, 0x54 };
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	cxd2841er_set_ts_clock_mode(priv, SYS_DVBC_ANNEX_A);
@@ -3402,6 +3468,8 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 	enum fe_status status;
 	struct cxd2841er_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s() delivery_system=%d bandwidth_hz=%d\n",
 		 __func__, p->delivery_system, p->bandwidth_hz);
@@ -3576,6 +3644,8 @@ static int cxd2841er_tune_tc(struct dvb_frontend *fe,
 	struct cxd2841er_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s(): re_tune %d bandwidth=%d\n", __func__,
 			re_tune, p->bandwidth_hz);
 	if (re_tune) {
@@ -3643,6 +3713,8 @@ static int cxd2841er_sleep_s(struct dvb_frontend *fe)
 static int cxd2841er_sleep_tc(struct dvb_frontend *fe)
 {
 	struct cxd2841er_priv *priv = fe->demodulator_priv;
+
+	pr_info("=== %s ===\n", __func__);
 
 	dev_dbg(&priv->i2c->dev, "%s()\n", __func__);
 	if (priv->state == STATE_ACTIVE_TC) {
@@ -3772,6 +3844,8 @@ static int cxd2841er_i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 	struct cxd2841er_priv *priv = fe->demodulator_priv;
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s(): enable=%d\n", __func__, enable);
 	cxd2841er_set_reg_bits(
 		priv, I2C_SLVX, 0x8, (enable ? 0x01 : 0x00), 0x01);
@@ -3835,6 +3909,8 @@ static int cxd2841er_init_tc(struct dvb_frontend *fe)
 	struct cxd2841er_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
+	pr_info("=== %s ===\n", __func__);
+
 	dev_dbg(&priv->i2c->dev, "%s() bandwidth_hz=%d\n",
 			__func__, p->bandwidth_hz);
 	cxd2841er_shutdown_to_sleep_tc(priv);
@@ -3849,12 +3925,17 @@ static int cxd2841er_init_tc(struct dvb_frontend *fe)
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x00);
 	cxd2841er_read_reg(priv, I2C_SLVT, 0xc4, &priv->ts_reg_val);
 
+	pr_info("ts_reg_val: %d\n", priv->ts_reg_val);
+
 	/* setup SERIAL/PARALLEL and OSERCKMODE accd to TS_SERIAL in cache */
 	priv->ts_reg_val = (priv->ts_reg_val &~ 0x80)
 		| ((priv->flags & CXD2841ER_TS_SERIAL) ? 0x81 : 0x00);
 	/* additional bits for HW_DDB, clear bits 3+4 in cache */
 	if (priv->flags & CXD2841ER_HW_DDB)
 		priv->ts_reg_val = (priv->ts_reg_val | 0x20) & 0xE7;
+
+	pr_info("ts_reg_val new: %d\n", priv->ts_reg_val);
+
 	/* write updated cached reg to demod */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0xc4, priv->ts_reg_val);
 
@@ -3889,6 +3970,8 @@ static struct dvb_frontend *cxd2841er_attach(struct cxd2841er_config *cfg,
 	const char *name;
 	struct cxd2841er_priv *priv = NULL;
 
+	pr_info("=== %s ===\n", __func__);
+
 	/* allocate memory for the internal state */
 	priv = kzalloc(sizeof(struct cxd2841er_priv), GFP_KERNEL);
 	if (!priv)
@@ -3897,6 +3980,8 @@ static struct dvb_frontend *cxd2841er_attach(struct cxd2841er_config *cfg,
 	priv->config = cfg;
 	priv->i2c_addr_slvx = (cfg->i2c_addr + 4) >> 1;
 	priv->i2c_addr_slvt = (cfg->i2c_addr) >> 1;
+	priv->curbankx = 0xff;
+	priv->curbankt = 0xff;
 	priv->xtal = cfg->xtal;
 	priv->flags = cfg->flags;
 	priv->frontend.demodulator_priv = priv;
