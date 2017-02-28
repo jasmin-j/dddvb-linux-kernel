@@ -215,6 +215,8 @@ static int writeregsx_unlocked(struct cxd_state *cxd, u8 Bank,
 		}
 		cxd->curbankx = Bank;
 	}
+
+	pr_info("[%02X SLVX] %02X/%02X = %*ph\n", cxd->adrx, Bank, Address, count, pValue);
 	status = writeregs(cxd, cxd->adrx, Address, pValue, count);
 	return status;
 }
@@ -248,6 +250,7 @@ static int writeregst_unlocked(struct cxd_state *cxd, u8 Bank,
 		}
 		cxd->curbankt = Bank;
 	}
+	pr_info("[%02X SLVT] %02X/%02X = %*ph\n", cxd->adrt, Bank, Address, count, pValue);
 	status = writeregs(cxd, cxd->adrt, Address, pValue, count);
 	return status;
 }
@@ -343,6 +346,8 @@ static int read_tps(struct cxd_state *state, u8 *tps)
 	if (state->last_status != FE_STATUS_FULL_LOCK)
 		return -1;
 
+	pr_info("=== %s ===\n", __func__);
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x10, 0x2f, tps, 7);
 	unfreeze_regst(state);
@@ -353,6 +358,8 @@ static void Active_to_Sleep(struct cxd_state *state)
 {
 	if (state->state <= Sleep)
 		return;
+
+	pr_info("=== %s ===\n", __func__);
 
 	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
 	writeregt(state, 0x00, 0x80, 0x3F); /* Enable HighZ 1 */
@@ -371,6 +378,8 @@ static void ActiveT2_to_Sleep(struct cxd_state *state)
 {
 	if (state->state <= Sleep)
 		return;
+
+	pr_info("=== %s ===\n", __func__);
 
 	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
 	writeregt(state, 0x00, 0x80, 0x3F); /* Enable HighZ 1 */
@@ -395,6 +404,8 @@ static void ActiveIT_to_Sleep(struct cxd_state *state)
 {
 	if (state->state <= Sleep)
 		return;
+
+	pr_info("=== %s ===\n", __func__);
 
 	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
 	writeregt(state, 0x00, 0x80, 0x3F); /* Enable HighZ 1 */
@@ -429,6 +440,8 @@ static void ActiveC2_to_Sleep(struct cxd_state *state)
 {
 	if (state->state <= Sleep)
 		return;
+
+	pr_info("=== %s ===\n", __func__);
 
 	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
 	writeregt(state, 0x00, 0x80, 0x3F); /* Enable HighZ 1 */
@@ -486,6 +499,8 @@ static int ConfigureTS(struct cxd_state *state,
 	u8 OREG_CKSEL_TSIF = state->SerialMode ?
 		state->SerialClockFrequency : 0;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (state->SerialMode && state->SerialClockFrequency >= 3) {
 		OSERCKMODE = 2;
 		OSERDUTYMODE = 2;
@@ -513,6 +528,8 @@ static void BandSettingT(struct cxd_state *state, u32 iffreq)
 	u8 IF_data[3] = { (iffreq >> 16) & 0xff,
 			  (iffreq >> 8) & 0xff, iffreq & 0xff};
 	u8 data[] = { 0x01, 0x14 };
+
+	pr_info("=== %s ===\n", __func__);
 
 	writeregst(state, 0x13, 0x9c, data, sizeof(data));
 
@@ -627,6 +644,8 @@ static void BandSettingT(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveT(struct cxd_state *state, u32 iffreq)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	ConfigureTS(state, ActiveT);
 	writeregx(state, 0x00, 0x17, 0x01);   /* Mode */
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
@@ -673,6 +692,8 @@ static void BandSettingT2(struct cxd_state *state, u32 iffreq)
 {
 	u8 IF_data[3] = {(iffreq >> 16) & 0xff, (iffreq >> 8) & 0xff,
 			 iffreq & 0xff};
+
+	pr_info("=== %s ===\n", __func__);
 
 	switch (state->bw) {
 	default:
@@ -765,6 +786,8 @@ static void BandSettingT2(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveT2(struct cxd_state *state, u32 iffreq)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	ConfigureTS(state, ActiveT2);
 
 	writeregx(state, 0x00, 0x17, 0x02);   /* Mode */
@@ -839,6 +862,8 @@ static void BandSettingC(struct cxd_state *state, u32 iffreq)
 {
 	u8 data[3];
 
+	pr_info("=== %s ===\n", __func__);
+
 	data[0] = (iffreq >> 16) & 0xFF;
 	data[1] = (iffreq >>  8) & 0xFF;
 	data[2] = (iffreq) & 0xFF;
@@ -847,6 +872,8 @@ static void BandSettingC(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveC(struct cxd_state *state, u32 iffreq)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	ConfigureTS(state, ActiveC);
 
 	writeregx(state, 0x00, 0x17, 0x04);   /* Mode */
@@ -898,6 +925,8 @@ static void BandSettingC2(struct cxd_state *state, u32 iffreq)
 {
 	u8 IF_data[3] = { (iffreq >> 16) & 0xff,
 			  (iffreq >> 8) & 0xff, iffreq & 0xff};
+
+	pr_info("=== %s ===\n", __func__);
 
 	switch (state->bw) {
 	default:
@@ -964,6 +993,8 @@ static void BandSettingC2(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveC2(struct cxd_state *state, u32 iffreq)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	ConfigureTS(state, ActiveC2);
 
 	writeregx(state, 0x00, 0x17, 0x05);   /* Mode */
@@ -1045,6 +1076,8 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 {
 	u8 IF_data[3] = { (iffreq >> 16) & 0xff,
 			  (iffreq >> 8) & 0xff, iffreq & 0xff};
+
+	pr_info("=== %s ===\n", __func__);
 
 	switch (state->bw) {
 	default:
@@ -1149,6 +1182,8 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	ConfigureTS(state, ActiveIT);
 
 	/* writeregx(state, 0x00,0x17,0x01); */ /* 2838 has only one Mode */
@@ -1229,6 +1264,8 @@ static void T2_SetParameters(struct cxd_state *state)
 	u8 Profile = 0x01; /* Profile Base */
 	u8 notT2time = state->is24MHz ? 24 : 12; /* early unlock detection time */
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (state->T2Profile == T2P_Lite) {
 		Profile = 0x05;
 		notT2time = state->is24MHz ? 46 : 40;
@@ -1250,6 +1287,8 @@ static void T2_SetParameters(struct cxd_state *state)
 
 static void C2_ReleasePreset(struct cxd_state *state)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	{
 		static u8 data[2] = { 0x02, 0x80};
 
@@ -1291,6 +1330,8 @@ static void C2_DemodSetting2(struct cxd_state *state)
 	u32 TunePosition =
 		state->frontend.dtv_property_cache.frequency / 1000;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (state->bw == 6)
 		TunePosition = ((TunePosition * 1792) / 3) / 1000;
 	else
@@ -1312,12 +1353,15 @@ static void C2_DemodSetting2(struct cxd_state *state)
 
 static void Stop(struct cxd_state *state)
 {
+	pr_info("=== %s ===\n", __func__);
 
 	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
 }
 
 static void ShutDown(struct cxd_state *state)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	switch (state->state) {
 	case ActiveT2:
 		ActiveT2_to_Sleep(state);
@@ -1338,12 +1382,16 @@ static int gate_ctrl(struct dvb_frontend *fe, int enable)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 
+	pr_info("=== %s ===\n", __func__);
+
 	return writebitsx(state, 0xFF, 0x08, enable ? 0x01 : 0x00, 0x01);
 }
 
 static void release(struct dvb_frontend *fe)
 {
 	struct cxd_state *state = fe->demodulator_priv;
+
+	pr_info("=== %s ===\n", __func__);
 
 	Stop(state);
 	ShutDown(state);
@@ -1354,6 +1402,8 @@ static int sleep(struct dvb_frontend *fe)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 
+	pr_info("=== %s ===\n", __func__);
+
 	Stop(state);
 	ShutDown(state);
 	return 0;
@@ -1363,6 +1413,8 @@ static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 {
 	enum demod_state newDemodState = Unknown;
 	u32 iffreq;
+
+	pr_info("=== %s ===\n", __func__);
 
 	if (state->state < Sleep)
 		return -EINVAL;
@@ -1499,6 +1551,8 @@ static int set_parameters(struct dvb_frontend *fe)
 	struct cxd_state *state = fe->demodulator_priv;
 	u32 IF;
 
+	pr_info("=== %s ===\n", __func__);
+
 	/* TODO: add SYS_DVBC2 when available */
 	switch (fe->dtv_property_cache.delivery_system) {
 	case SYS_DVBC_ANNEX_A:
@@ -1533,6 +1587,8 @@ static int set_parameters(struct dvb_frontend *fe)
 static void init(struct cxd_state *state)
 {
 	u8 data[2] = {0x00, 0x00}; /* 20.5 MHz */
+
+	pr_info("=== %s ===\n", __func__);
 
 	state->delsys = SYS_UNDEFINED;
 	state->state  = Unknown;
@@ -1593,6 +1649,8 @@ static void init(struct cxd_state *state)
 
 static void init_state(struct cxd_state *state, struct cxd2843_cfg *cfg)
 {
+	pr_info("=== %s ===\n", __func__);
+
 	state->adrt = cfg->adr;
 	state->adrx = cfg->adr + 0x02;
 	state->curbankt = 0xff;
@@ -1613,6 +1671,8 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	u8 rdata;
+
+	pr_info("=== %s ===\n", __func__);
 
 	*status = 0;
 	switch (state->state) {
@@ -1735,6 +1795,8 @@ static int get_ber_t(struct cxd_state *state, u32 *n, u32 *d)
 	u8 BERRegs[3];
 	u8 Scale;
 
+	pr_info("=== %s ===\n", __func__);
+
 	*n = 0;
 	*d = 1;
 
@@ -1770,6 +1832,8 @@ static int get_ber_t2(struct cxd_state *state, u32 *n, u32 *d)
 		{32400, 38880, 43200, 48600, 51840, 54000, 21600, 25920} /* 64k FEC */
 	};
 
+	pr_info("=== %s ===\n", __func__);
+
 	*n = 0;
 	*d = 1;
 	freeze_regst(state);
@@ -1804,6 +1868,8 @@ static int get_ber_c(struct cxd_state *state, u32 *n, u32 *d)
 {
 	u8 BERRegs[3];
 	u8 Scale;
+
+	pr_info("=== %s ===\n", __func__);
 
 	*n = 0;
 	*d = 1;
@@ -1846,6 +1912,8 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber, u32 *n, u32 *d)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	int s = 0;
+
+	pr_info("=== %s ===\n", __func__);
 
 	*ber = 0;
 	*n = 0;
@@ -1905,6 +1973,8 @@ static int GetSignalToNoiseIT(struct cxd_state *state, u32 *snr)
 	u8 Data[2];
 	u32 reg;
 
+	pr_info("=== %s ===\n", __func__);
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x60, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
@@ -1933,6 +2003,8 @@ static int GetSignalToNoiseC2(struct cxd_state *state, u32 *snr)
 	u8 Data[2];
 	u32 reg;
 
+	pr_info("=== %s ===\n", __func__);
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
@@ -1952,6 +2024,8 @@ static int GetSignalToNoiseT2(struct cxd_state *state, u32 *snr)
 	u8 Data[2];
 	u32 reg;
 
+	pr_info("=== %s ===\n", __func__);
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
@@ -1969,6 +2043,8 @@ static int GetSignalToNoiseT(struct cxd_state *state, u32 *snr)
 {
 	u8 Data[2];
 	u32 reg;
+
+	pr_info("=== %s ===\n", __func__);
 
 	freeze_regst(state);
 	readregst_unlocked(state, 0x10, 0x28, Data, sizeof(Data));
@@ -1988,6 +2064,8 @@ static int GetSignalToNoiseC(struct cxd_state *state, u32 *snr)
 	u8 Data[2];
 	u8 Constellation = 0;
 	u32 reg;
+
+	pr_info("=== %s ===\n", __func__);
 
 	*snr = 0;
 
@@ -2024,6 +2102,8 @@ static u32 read_snr(struct dvb_frontend *fe, u16 *snr)
 	u32 ret = 0;
 	struct cxd_state *state = fe->demodulator_priv;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (state->last_status != FE_STATUS_FULL_LOCK)
 		return 0;
 
@@ -2057,6 +2137,8 @@ static int read_agc_gain_c_t_t2(struct dvb_frontend *fe, u16 *strength)
 	u8 data[2];
 	u8 regbank;
 
+	pr_info("=== %s ===\n", __func__);
+
 	switch (state->state) {
 	case ActiveC:
 	case ActiveT:
@@ -2088,6 +2170,8 @@ static int tune(struct dvb_frontend *fe, bool re_tune,
 	struct cxd_state *state = fe->demodulator_priv;
 	int r;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if (re_tune) {
 		r = set_parameters(fe);
 		if (r)
@@ -2109,6 +2193,8 @@ static enum dvbfe_search search(struct dvb_frontend *fe)
 	int r;
 	u32 loops = 20, i;
 	enum fe_status status;
+
+	pr_info("=== %s ===\n", __func__);
 
 	r = set_parameters(fe);
 
@@ -2137,6 +2223,8 @@ static int get_fe_t2(struct cxd_state *state)
 	struct dvb_frontend *fe = &state->frontend;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 ofdm[5], modcod[2];
+
+	pr_info("=== %s ===\n", __func__);
 
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x5c, ofdm, 5);
@@ -2235,6 +2323,8 @@ static int get_fe_t(struct cxd_state *state)
 	struct dvb_frontend *fe = &state->frontend;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 tps[7];
+
+	pr_info("=== %s ===\n", __func__);
 
 	read_tps(state, tps);
 
@@ -2338,6 +2428,8 @@ static int get_fe_c(struct cxd_state *state)
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 qam;
 
+	pr_info("=== %s ===\n", __func__);
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x40, 0x19, &qam, 1);
 	unfreeze_regst(state);
@@ -2353,6 +2445,8 @@ static int get_frontend(struct dvb_frontend *fe,
 	int tmp;
 	u16 snr = 0, strength = 0;
 	u32 ber = 0, bernom = 0, berdenom = 1;
+
+	pr_info("=== %s ===\n", __func__);
 
 	tmp = read_status(fe, &status);
 
@@ -2540,6 +2634,8 @@ static int probe(struct cxd_state *state)
 	u8 ChipID = 0x00;
 	int status;
 
+	pr_info("=== %s ===\n", __func__);
+
 	status = readregst(state, 0x00, 0xFD, &ChipID, 1);
 
 	if (status)
@@ -2586,6 +2682,8 @@ struct dvb_frontend *cxd2843_attach(struct i2c_adapter *i2c,
 				    struct cxd2843_cfg *cfg)
 {
 	struct cxd_state *state = NULL;
+
+	pr_info("=== %s ===\n", __func__);
 
 	state = kzalloc(sizeof(struct cxd_state), GFP_KERNEL);
 	if (!state)
