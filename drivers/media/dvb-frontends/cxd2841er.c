@@ -2273,7 +2273,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 4800000);
@@ -2302,7 +2303,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 4200000);
@@ -2331,7 +2333,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 3600000);
@@ -2360,7 +2363,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 3600000);
@@ -2389,7 +2393,8 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		 */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef17bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 3500000);
@@ -2489,7 +2494,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 4800000);
@@ -2525,7 +2531,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 4200000);
@@ -2561,7 +2568,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 3600000);
@@ -2597,7 +2605,8 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		/* Group delay equaliser settings for
 		 * ASCOT2D, ASCOT2E and ASCOT3 tuners
 		*/
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
 		ifhz = cxd2841er_get_if_hz(priv, 3600000);
@@ -2699,7 +2708,8 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate8bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef8bw[priv->xtal], 14);
 
 		/* IF freq setting */
@@ -2729,7 +2739,8 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate7bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef7bw[priv->xtal], 14);
 
 		/* IF freq setting */
@@ -2759,7 +2770,8 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0x9F, nominalRate6bw[priv->xtal], 5);
 		/*  Group delay equaliser settings for ASCOT tuners optimized */
-		cxd2841er_write_regs(priv, I2C_SLVT,
+		if (priv->flags & CXD2841ER_ASCOT)
+			cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef6bw[priv->xtal], 14);
 
 		/* IF freq setting */
@@ -2920,8 +2932,9 @@ static int cxd2841er_sleep_tc_to_active_t(struct cxd2841er_priv *priv,
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x6a, 0x50);
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
-	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	/* ASCOT setting */
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5,
+		((priv->flags & CXD2841ER_ASCOT) ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x18 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x18);
 	/* Pre-RS BER moniter setting */
@@ -2998,8 +3011,9 @@ static int cxd2841er_sleep_tc_to_active_t2(struct cxd2841er_priv *priv,
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x6a, 0x50);
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
-	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	/* ASCOT setting */
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5,
+		((priv->flags & CXD2841ER_ASCOT) ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x20 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x20);
 	/* Acquisition optimization setting */
@@ -3136,8 +3150,9 @@ static int cxd2841er_sleep_tc_to_active_i(struct cxd2841er_priv *priv,
 	cxd2841er_write_regs(priv, I2C_SLVT, 0x43, data, 2);
 	/* Enable ADC 4 */
 	cxd2841er_write_reg(priv, I2C_SLVX, 0x18, 0x00);
-	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	/* ASCOT setting */
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5,
+		((priv->flags & CXD2841ER_ASCOT) ? 0x01 : 0x00), 0x01);
 	/* FEC Auto Recovery setting */
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0x30, 0x01, 0x01);
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0x31, 0x00, 0x01);
@@ -3221,8 +3236,9 @@ static int cxd2841er_sleep_tc_to_active_c(struct cxd2841er_priv *priv,
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x6a, 0x48);
 	/* Set SLV-T Bank : 0x10 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
-	/* ASCOT setting ON */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5, 0x01, 0x01);
+	/* ASCOT setting */
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xa5,
+		((priv->flags & CXD2841ER_ASCOT) ? 0x01 : 0x00), 0x01);
 	/* Set SLV-T Bank : 0x40 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x40);
 	/* Demod setting */
