@@ -3769,15 +3769,19 @@ static int cxd2841er_init_tc(struct dvb_frontend *fe)
 	dev_dbg(&priv->i2c->dev, "%s() bandwidth_hz=%d\n",
 			__func__, p->bandwidth_hz);
 	cxd2841er_shutdown_to_sleep_tc(priv);
-	/* SONY_DEMOD_CONFIG_IFAGCNEG = 1 */
+	/* SONY_DEMOD_CONFIG_IFAGCNEG = 1 (0 for DDB) */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x10);
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xcb, 0x40, 0x40);
+	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xcb,
+		((priv->flags & CXD2841ER_HW_DDB) ? 0x00 : 0x40), 0x40);
 	/* SONY_DEMOD_CONFIG_IFAGC_ADC_FS = 0 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0xcd, 0x50);
 	/* SONY_DEMOD_CONFIG_PARALLEL_SEL = 1 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x00);
 	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4,
 		((priv->flags & CXD2841ER_TS_SERIAL) ? 0x80 : 0x00), 0x80);
+	/* clear bits 3+4 for DDB */
+	if (priv->flags & CXD2841ER_HW_DDB)
+		cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4, 0x00, 0x18);
 
 	cxd2841er_init_stats(fe);
 
