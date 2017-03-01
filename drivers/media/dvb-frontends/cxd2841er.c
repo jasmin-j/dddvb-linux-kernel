@@ -348,8 +348,12 @@ static u32 cxd2841er_calc_iffreq_xtal(enum cxd2841er_xtal xtal, u32 ifhz)
 {
 	u64 tmp;
 
+	pr_info("=== %s ===\n", __func__);
+
 	tmp = (u64) ifhz * 16777216;
 	do_div(tmp, ((xtal == SONY_XTAL_24000) ? 48000000 : 41000000));
+
+	pr_info("iffreq: %u\n", (u32) tmp);
 
 	return (u32) tmp;
 }
@@ -363,10 +367,14 @@ static int cxd2841er_get_if_hz(struct cxd2841er_priv *priv, u32 def_hz)
 {
 	u32 hz;
 
+	pr_info("=== %s ===\n", __func__);
+
 	if ((priv->flags & CXD2841ER_AUTO_IFHZ) && priv->frontend.ops.tuner_ops.get_if_frequency)
 		priv->frontend.ops.tuner_ops.get_if_frequency(&priv->frontend, &hz);
 	else
 		hz = def_hz;
+
+	pr_info("ifhz: %u\n", hz);
 
 	return hz;
 }
