@@ -202,11 +202,6 @@ static const struct cxd2841er_cnr_data s2_cn_data[] = {
 	{ 0x0016, 19700 }, { 0x0015, 19900 }, { 0x0014, 20000 },
 };
 
-#define MAKE_IFFREQ_CONFIG(iffreq) ((u32)(((iffreq)/41.0)*16777216.0 + 0.5))
-#define MAKE_IFFREQ_CONFIG_XTAL(xtal, iffreq) ((xtal == SONY_XTAL_24000) ? \
-		(u32)(((iffreq)/48.0)*16777216.0 + 0.5) : \
-		(u32)(((iffreq)/41.0)*16777216.0 + 0.5))
-
 static int cxd2841er_freeze_regs(struct cxd2841er_priv *priv);
 static int cxd2841er_unfreeze_regs(struct cxd2841er_priv *priv);
 
@@ -324,6 +319,21 @@ static int cxd2841er_set_reg_bits(struct cxd2841er_priv *priv,
 		data = ((data & mask) | (rdata & (mask ^ 0xFF)));
 	}
 	return cxd2841er_write_reg(priv, addr, reg, data);
+}
+
+static u32 cxd2841er_calc_iffreq_xtal(enum cxd2841er_xtal xtal, u32 ifhz)
+{
+	u64 tmp;
+
+	tmp = (u64) ifhz * 16777216;
+	do_div(tmp, ((xtal == SONY_XTAL_24000) ? 48000000 : 41000000));
+
+	return (u32) tmp;
+}
+
+static u32 cxd2841er_calc_iffreq(u32 ifhz)
+{
+	return cxd2841er_calc_iffreq_xtal(SONY_XTAL_20500, ifhz);
 }
 
 static int cxd2841er_dvbs2_set_symbol_rate(struct cxd2841er_priv *priv,
@@ -2241,7 +2251,7 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.80);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4800000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2269,7 +2279,7 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.20);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4200000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2297,7 +2307,7 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3600000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2325,7 +2335,7 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3600000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2353,7 +2363,7 @@ static int cxd2841er_sleep_tc_to_active_t2_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef17bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.50);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3500000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2452,7 +2462,7 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef8bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.80);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4800000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2487,7 +2497,7 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef7bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.20);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4200000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2522,7 +2532,7 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef6bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3600000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2557,7 +2567,7 @@ static int cxd2841er_sleep_tc_to_active_t_band(
 		cxd2841er_write_regs(priv, I2C_SLVT,
 				0xA6, itbCoef5bw[priv->xtal], 14);
 		/* <IF freq setting> */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.60);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3600000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2659,7 +2669,7 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 				0xA6, itbCoef8bw[priv->xtal], 14);
 
 		/* IF freq setting */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.75);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4750000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2688,7 +2698,7 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 				0xA6, itbCoef7bw[priv->xtal], 14);
 
 		/* IF freq setting */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 4.15);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 4150000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2717,7 +2727,7 @@ static int cxd2841er_sleep_tc_to_active_i_band(
 				0xA6, itbCoef6bw[priv->xtal], 14);
 
 		/* IF freq setting */
-		iffreq = MAKE_IFFREQ_CONFIG_XTAL(priv->xtal, 3.55);
+		iffreq = cxd2841er_calc_iffreq_xtal(priv->xtal, 3550000);
 		data[0] = (u8) ((iffreq >> 16) & 0xff);
 		data[1] = (u8)((iffreq >> 8) & 0xff);
 		data[2] = (u8)(iffreq & 0xff);
@@ -2778,13 +2788,13 @@ static int cxd2841er_sleep_tc_to_active_c_band(struct cxd2841er_priv *priv,
 		cxd2841er_write_regs(
 			priv, I2C_SLVT, 0xa6,
 			bw7_8mhz_b10_a6, sizeof(bw7_8mhz_b10_a6));
-		iffreq = MAKE_IFFREQ_CONFIG(4.9);
+		iffreq = cxd2841er_calc_iffreq(4900000);
 		break;
 	case 6000000:
 		cxd2841er_write_regs(
 			priv, I2C_SLVT, 0xa6,
 			bw6mhz_b10_a6, sizeof(bw6mhz_b10_a6));
-		iffreq = MAKE_IFFREQ_CONFIG(3.7);
+		iffreq = cxd2841er_calc_iffreq(3700000);
 		break;
 	default:
 		dev_err(&priv->i2c->dev, "%s(): unsupported bandwidth %d\n",
