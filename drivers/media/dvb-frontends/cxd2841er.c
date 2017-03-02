@@ -350,6 +350,20 @@ static int cxd2841er_get_if_hz(struct cxd2841er_priv *priv, u32 def_hz)
 	return hz;
 }
 
+static int cxd2841er_tuner_set(struct dvb_frontend *fe)
+{
+	struct cxd2841er_priv *priv = fe->demodulator_priv;
+
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
+		fe->ops.i2c_gate_ctrl(fe, 1);
+	if (fe->ops.tuner_ops.set_params)
+		fe->ops.tuner_ops.set_params(fe);
+	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
+		fe->ops.i2c_gate_ctrl(fe, 0);
+
+	return 0;
+}
+
 static int cxd2841er_dvbs2_set_symbol_rate(struct cxd2841er_priv *priv,
 					   u32 symbol_rate)
 {
@@ -3324,6 +3338,10 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		__func__,
 		(p->delivery_system == SYS_DVBS ? "DVB-S" : "DVB-S2"),
 		 p->frequency, symbol_rate, priv->xtal);
+
+	if (priv->flags & CXD2841ER_EARLY_TUNE)
+		cxd2841er_tuner_set(fe);
+
 	switch (priv->state) {
 	case STATE_SLEEP_S:
 		ret = cxd2841er_sleep_s_to_active_s(
@@ -3342,12 +3360,10 @@ static int cxd2841er_set_frontend_s(struct dvb_frontend *fe)
 		dev_dbg(&priv->i2c->dev, "%s(): tune failed\n", __func__);
 		goto done;
 	}
-	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	if (fe->ops.tuner_ops.set_params)
-		fe->ops.tuner_ops.set_params(fe);
-	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
+
+	if (!(priv->flags & CXD2841ER_EARLY_TUNE))
+		cxd2841er_tuner_set(fe);
+
 	cxd2841er_tune_done(priv);
 	timeout = ((3000000 + (symbol_rate - 1)) / symbol_rate) + 150;
 	for (i = 0; i < timeout / CXD2841ER_DVBS_POLLING_INVL; i++) {
@@ -3386,6 +3402,10 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 
 	dev_dbg(&priv->i2c->dev, "%s() delivery_system=%d bandwidth_hz=%d\n",
 		 __func__, p->delivery_system, p->bandwidth_hz);
+
+	if (priv->flags & CXD2841ER_EARLY_TUNE)
+		cxd2841er_tuner_set(fe);
+
 	if (p->delivery_system == SYS_DVBT) {
 		priv->system = SYS_DVBT;
 		switch (priv->state) {
@@ -3467,12 +3487,10 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 	}
 	if (ret)
 		goto done;
-	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	if (fe->ops.tuner_ops.set_params)
-		fe->ops.tuner_ops.set_params(fe);
-	if ((priv->flags & CXD2841ER_USE_GATECTRL) && fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
+
+	if (!(priv->flags & CXD2841ER_EARLY_TUNE))
+		cxd2841er_tuner_set(fe);
+
 	cxd2841er_tune_done(priv);
 	timeout = 2500;
 	while (timeout > 0) {
