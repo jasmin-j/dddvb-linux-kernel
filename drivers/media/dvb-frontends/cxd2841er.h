@@ -29,6 +29,7 @@
 #define CXD2841ER_TS_SERIAL	4	/* bit 2 */
 #define CXD2841ER_ASCOT		8	/* bit 3 */
 #define CXD2841ER_EARLY_TUNE	16	/* bit 4 */
+#define CXD2841ER_SLEEPONSWITCH	32	/* bit 5 */
 #define CXD2841ER_HW_DDB	8388608	/* bit 23 */
 
 enum cxd2841er_xtal {
