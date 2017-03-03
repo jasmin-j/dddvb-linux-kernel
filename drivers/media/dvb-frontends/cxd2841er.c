@@ -3379,6 +3379,29 @@ static int cxd2841er_set_frontend_tc(struct dvb_frontend *fe)
 	dev_dbg(&priv->i2c->dev, "%s() delivery_system=%d bandwidth_hz=%d\n",
 		 __func__, p->delivery_system, p->bandwidth_hz);
 
+	if (priv->flags & CXD2841ER_SLEEPONSWITCH) {
+		if (priv->system != p->delivery_system) {
+			dev_dbg(&priv->i2c->dev, "%s(): sleep due to delivery system switch (%d != %d)\n",
+				__func__, priv->system, p->delivery_system);
+			switch (priv->system) {
+			case SYS_DVBT:
+				cxd2841er_active_t_to_sleep_tc(priv);
+				break;
+			case SYS_DVBT2:
+				cxd2841er_active_t2_to_sleep_tc(priv);
+				break;
+			case SYS_ISDBT:
+				cxd2841er_active_i_to_sleep_tc(priv);
+				break;
+			case SYS_DVBC_ANNEX_A:
+				cxd2841er_active_c_to_sleep_tc(priv);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
 	if (priv->flags & CXD2841ER_EARLY_TUNE)
 		cxd2841er_tuner_set(fe);
 
