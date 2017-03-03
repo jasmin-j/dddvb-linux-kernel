@@ -44,6 +44,10 @@
 #define DDB_MAX_INPUT   8
 #define DDB_MAX_OUTPUT  4
 
+#define DDB_XO2_TYPE_NONE	0
+#define DDB_XO2_TYPE_DUOFLEX	1
+#define DDB_XO2_TYPE_CI		2
+
 struct ddb_info {
 	int   type;
 #define DDB_NONE         0
@@ -144,6 +148,13 @@ struct ddb_port {
 #define DDB_TUNER_DVBS_ST_AA    2
 #define DDB_TUNER_DVBCT_TR     16
 #define DDB_TUNER_DVBCT_ST     17
+#define DDB_TUNER_XO2_DVBS_STV0910	32
+#define DDB_TUNER_XO2_DVBCT2_SONY	33
+#define DDB_TUNER_XO2_ISDBT_SONY	34
+#define DDB_TUNER_XO2_DVBC2T2_SONY	35
+#define DDB_TUNER_XO2_ATSC_ST		36
+#define DDB_TUNER_XO2_DVBC2T2I_SONY	37
+
 	u32                    adr;
 
 	struct ddb_input      *input[2];
