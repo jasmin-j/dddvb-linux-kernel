@@ -41,6 +41,7 @@
 #include "drxk.h"
 #include "stv0367.h"
 #include "stv0367_priv.h"
+#include "cxd2841er.h"
 #include "tda18212.h"
 
 static int xo2_speed = 2;
@@ -689,6 +690,36 @@ static int demod_attach_stv0367(struct ddb_input *input)
 	return 0;
 }
 
+static int demod_attach_cxd28xx(struct ddb_input *input, int par, int osc24)
+{
+	struct i2c_adapter *i2c = &input->port->i2c->adap;
+	struct cxd2841er_config cfg;
+
+	/* the cxd2841er driver expects 8bit/shifted I2C addresses */
+	cfg.i2c_addr = ((input->nr & 1) ? 0x6d : 0x6c) << 1;
+
+	cfg.xtal = osc24 ? SONY_XTAL_24000 : SONY_XTAL_20500;
+	cfg.flags = CXD2841ER_AUTO_IFHZ | CXD2841ER_HW_DDB |
+		CXD2841ER_EARLY_TUNE | CXD2841ER_SLEEPONSWITCH;
+
+	if (!par)
+		cfg.flags |= CXD2841ER_TS_SERIAL;
+
+	/* attach frontend */
+	input->fe = dvb_attach(cxd2841er_attach_t_c, &cfg, i2c);
+
+	if (!input->fe) {
+		printk(KERN_ERR "No Sony CXD28xx found!\n");
+		return -ENODEV;
+	}
+
+	input->fe->sec_priv = input;
+	input->gate_ctrl = input->fe->ops.i2c_gate_ctrl;
+	input->fe->ops.i2c_gate_ctrl = drxk_gate_ctrl;
+
+	return 0;
+}
+
 static int tuner_attach_tda18212(struct ddb_input *input)
 {
 	struct i2c_adapter *adapter = &input->port->i2c->adap;
@@ -950,6 +981,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	struct ddb_port *port = input->port;
 	struct dvb_adapter *adap = &input->adap;
 	struct dvb_demux *dvbdemux = &input->demux;
+	int sony_osc24 = 0;
 
 	ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
 				   &input->port->dev->pdev->dev,
@@ -1019,6 +1051,22 @@ static int dvb_input_attach(struct ddb_input *input)
 		break;
 	case DDB_TUNER_DVBCT_ST:
 		if (demod_attach_stv0367(input) < 0)
+			return -ENODEV;
+		if (tuner_attach_tda18212(input) < 0)
+			return -ENODEV;
+		if (input->fe) {
+			if (dvb_register_frontend(adap, input->fe) < 0)
+				return -ENODEV;
+		}
+		break;
+	case DDB_TUNER_XO2_DVBC2T2I_SONY:
+	case DDB_TUNER_XO2_DVBCT2_SONY:
+	case DDB_TUNER_XO2_DVBC2T2_SONY:
+	case DDB_TUNER_XO2_ISDBT_SONY:
+		if (port->type == DDB_TUNER_XO2_DVBC2T2I_SONY)
+			sony_osc24 = 1;
+
+		if (demod_attach_cxd28xx(input, 0, sony_osc24) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212(input) < 0)
 			return -ENODEV;
@@ -1414,18 +1462,18 @@ static void ddb_port_probe(struct ddb_port *port)
 				port->type = DDB_TUNER_XO2_DVBS_STV0910;
 				break;
 			case 1:
-				modname = "DUAL DVB-C/T/T2 (unsupported)";
-				port->class = DDB_PORT_NONE;
+				modname = "DUAL DVB-C/T/T2";
+				port->class = DDB_PORT_TUNER;
 				port->type = DDB_TUNER_XO2_DVBCT2_SONY;
 				break;
 			case 2:
-				modname = "DUAL DVB-ISDBT (unsupported)";
-				port->class = DDB_PORT_NONE;
+				modname = "DUAL DVB-ISDBT";
+				port->class = DDB_PORT_TUNER;
 				port->type = DDB_TUNER_XO2_ISDBT_SONY;
 				break;
 			case 3:
-				modname = "DUAL DVB-C/C2/T/T2 (unsupported)";
-				port->class = DDB_PORT_NONE;
+				modname = "DUAL DVB-C/C2/T/T2";
+				port->class = DDB_PORT_TUNER;
 				port->type = DDB_TUNER_XO2_DVBC2T2_SONY;
 				break;
 			case 4:
@@ -1434,8 +1482,8 @@ static void ddb_port_probe(struct ddb_port *port)
 				port->type = DDB_TUNER_XO2_ATSC_ST;
 				break;
 			case 5:
-				modname = "DUAL DVB-C/C2/T/T2/ISDBT (unsupported)";
-				port->class = DDB_PORT_NONE;
+				modname = "DUAL DVB-C/C2/T/T2/ISDBT";
+				port->class = DDB_PORT_TUNER;
 				port->type = DDB_TUNER_XO2_DVBC2T2I_SONY;
 				break;
 			default:
