@@ -43,6 +43,10 @@
 #define DDB_MAX_PORT    4
 #define DDB_MAX_INPUT   8
 #define DDB_MAX_OUTPUT  4
+#define DDB_MAX_LINK    4
+#define DDB_LINK_SHIFT 28
+
+#define DDB_LINK_TAG(_x) (_x << DDB_LINK_SHIFT)
 
 #define DDB_XO2_TYPE_NONE	0
 #define DDB_XO2_TYPE_DUOFLEX	1
@@ -55,6 +59,12 @@ struct ddb_info {
 	char *name;
 	int   port_num;
 	u32   port_type[DDB_MAX_PORT];
+	u32   board_control;
+	u32   board_control_2;
+	u8    ts_quirks;
+#define TS_QUIRK_SERIAL   1
+#define TS_QUIRK_REVERSED 2
+#define TS_QUIRK_ALT_OSC  8
 };
 
 /* DMA_SIZE MUST be divisible by 188 and 128 !!! */
