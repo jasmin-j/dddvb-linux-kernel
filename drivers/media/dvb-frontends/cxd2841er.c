@@ -597,13 +597,15 @@ static int cxd2841er_sleep_tc_to_shutdown(struct cxd2841er_priv *priv)
 			__func__, priv->state);
 		return -EINVAL;
 	}
-	/* Set SLV-X Bank : 0x00 */
-	cxd2841er_write_reg(priv, I2C_SLVX, 0x00, 0x00);
-	/* Disable oscillator */
-	cxd2841er_write_reg(priv, I2C_SLVX, 0x15, 0x01);
-	/* Set demod mode */
-	cxd2841er_write_reg(priv, I2C_SLVX, 0x17, 0x01);
-	priv->state = STATE_SHUTDOWN;
+	if (!(priv->flags & CXD2841ER_HW_DDB)) {
+		/* Set SLV-X Bank : 0x00 */
+		cxd2841er_write_reg(priv, I2C_SLVX, 0x00, 0x00);
+		/* Disable oscillator */
+		cxd2841er_write_reg(priv, I2C_SLVX, 0x15, 0x01);
+		/* Set demod mode */
+		cxd2841er_write_reg(priv, I2C_SLVX, 0x17, 0x01);
+		priv->state = STATE_SHUTDOWN;
+	}
 	return 0;
 }
 
@@ -3921,6 +3923,12 @@ static struct dvb_frontend *cxd2841er_attach(struct cxd2841er_config *cfg,
 		__func__, name, type);
 	dev_info(&priv->i2c->dev, "%s(): chip ID 0x%02x OK.\n",
 		__func__, chip_id);
+
+	if (priv->flags & CXD2841ER_HW_DDB) {
+		priv->frontend.ops.init = NULL;
+		cxd2841er_init_tc(&priv->frontend);
+	}
+
 	return &priv->frontend;
 }
 
