@@ -59,6 +59,7 @@ struct cxd2841er_priv {
 	struct dvb_frontend		frontend;
 	struct i2c_adapter		*i2c;
 	u8				chip_id;
+	u8				ts_reg_val;
 	u8				i2c_addr_slvx;
 	u8				i2c_addr_slvt;
 	const struct cxd2841er_config	*config;
@@ -928,12 +929,8 @@ static void cxd2841er_set_ts_clock_mode(struct cxd2841er_priv *priv,
 	dev_dbg(&priv->i2c->dev, "%s(): ser_ts=0x%02x rate_ctrl_off=0x%02x in_off=0x%02x\n",
 		__func__, serial_ts, ts_rate_ctrl_off, ts_in_off);
 
-	/*
-	 * slave    Bank    Addr    Bit    default    Name
-	 * <SLV-T>  00h     C4h     [1:0]  2'b??      OSERCKMODE
-	 */
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4,
-		((priv->flags & CXD2841ER_TS_SERIAL) ? 0x01 : 0x00), 0x03);
+	/* re-set cached ts_reg_val */
+	cxd2841er_write_reg(priv, I2C_SLVT, 0xc4, priv->ts_reg_val);
 	/*
 	 * slave    Bank    Addr    Bit    default    Name
 	 * <SLV-T>  00h     D1h     [1:0]  2'b??      OSERDUTYMODE
@@ -3800,13 +3797,22 @@ static int cxd2841er_init_tc(struct dvb_frontend *fe)
 		((priv->flags & CXD2841ER_HW_DDB) ? 0x00 : 0x40), 0x40);
 	/* SONY_DEMOD_CONFIG_IFAGC_ADC_FS = 0 */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0xcd, 0x50);
-	/* SONY_DEMOD_CONFIG_PARALLEL_SEL = 1 or 0 (TS_SERIAL) */
+
+	/* read and cache SONY_DEMOD_CONFIG_PARALLEL_SEL */
 	cxd2841er_write_reg(priv, I2C_SLVT, 0x00, 0x00);
-	cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4,
-		((priv->flags & CXD2841ER_TS_SERIAL) ? 0x80 : 0x00), 0x80);
+	cxd2841er_read_reg(priv, I2C_SLVT, 0xc4, &priv->ts_reg_val);
+
+	/* setup SERIAL/PARALLEL and OSERCKMODE accd to TS_SERIAL in cache */
+	priv->ts_reg_val = (priv->ts_reg_val &~ 0x80)
+		| ((priv->flags & CXD2841ER_TS_SERIAL) ? 0x81 : 0x00);
+	/* additional bits for HW_DDB, clear bits 3+4 in cache */
+	if (priv->flags & CXD2841ER_HW_DDB)
+		priv->ts_reg_val = (priv->ts_reg_val | 0x20) & 0xE7;
+	/* write updated cached reg to demod */
+	cxd2841er_write_reg(priv, I2C_SLVT, 0xc4, priv->ts_reg_val);
+
 	/* additional setup for DDB */
 	if (priv->flags & CXD2841ER_HW_DDB) {
-		cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc4, 0x00, 0x18);
 		cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc5, 0x01, 0x07);
 		cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xcb, 0x00, 0x01);
 		cxd2841er_set_reg_bits(priv, I2C_SLVT, 0xc6, 0x00, 0x1d);
