@@ -1999,6 +1999,12 @@ static const struct ddb_info ddb_octopus_le = {
 	.port_num = 2,
 };
 
+static const struct ddb_info ddb_octopus_oem = {
+	.type     = DDB_OCTOPUS,
+	.name     = "Digital Devices Octopus OEM",
+	.port_num = 4,
+};
+
 static const struct ddb_info ddb_octopus_mini = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus Mini",
@@ -2020,6 +2026,14 @@ static const struct ddb_info ddb_dvbct = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices DVBCT V6.1 DVB adapter",
 	.port_num = 3,
+};
+
+static const struct ddb_info ddb_ctv7 = {
+	.type     = DDB_OCTOPUS,
+	.name     = "Digital Devices Cine CT V7 DVB adapter",
+	.port_num = 4,
+	.board_control   = 3,
+	.board_control_2 = 4,
 };
 
 static const struct ddb_info ddb_satixS2v3 = {
@@ -2044,13 +2058,19 @@ static const struct ddb_info ddb_octopusv3 = {
 static const struct pci_device_id ddb_id_tbl[] = {
 	DDB_ID(DDVID, 0x0002, DDVID, 0x0001, ddb_octopus),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0001, ddb_octopus),
+	DDB_ID(DDVID, 0x0005, DDVID, 0x0004, ddb_octopusv3),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0002, ddb_octopus_le),
+	DDB_ID(DDVID, 0x0003, DDVID, 0x0003, ddb_octopus_oem),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0010, ddb_octopus_mini),
+	DDB_ID(DDVID, 0x0005, DDVID, 0x0011, ddb_octopus_mini),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0020, ddb_v6),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0021, ddb_v6_5),
 	DDB_ID(DDVID, 0x0003, DDVID, 0x0030, ddb_dvbct),
 	DDB_ID(DDVID, 0x0003, DDVID, 0xdb03, ddb_satixS2v3),
-	DDB_ID(DDVID, 0x0005, DDVID, 0x0004, ddb_octopusv3),
+	DDB_ID(DDVID, 0x0006, DDVID, 0x0031, ddb_ctv7),
+	DDB_ID(DDVID, 0x0006, DDVID, 0x0032, ddb_ctv7),
+	DDB_ID(DDVID, 0x0006, DDVID, 0x0033, ddb_ctv7),
+	DDB_ID(DDVID, 0x0006, DDVID, 0x0039, ddb_ctv7),
 	/* in case sub-ids got deleted in flash */
 	DDB_ID(DDVID, 0x0003, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	{0}
