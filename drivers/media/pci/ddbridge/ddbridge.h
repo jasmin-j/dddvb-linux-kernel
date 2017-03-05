@@ -178,14 +178,4 @@ struct ddb {
 	int                    msi;
 };
 
-/****************************************************************************/
-
-#define ddbwritel(_val, _adr)        writel((_val), \
-				     dev->regs+(_adr))
-#define ddbreadl(_adr)               readl(dev->regs+(_adr))
-#define ddbcpyto(_adr, _src, _count) memcpy_toio(dev->regs+(_adr), (_src), (_count))
-#define ddbcpyfrom(_dst, _adr, _count) memcpy_fromio((_dst), dev->regs+(_adr), (_count))
-
-/****************************************************************************/
-
 #endif
