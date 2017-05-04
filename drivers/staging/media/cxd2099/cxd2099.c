@@ -33,7 +33,9 @@
 
 #include "cxd2099.h"
 
-/* #define BUFFER_MODE 1 */
+#ifndef BUFFER_MODE
+#define BUFFER_MODE 1
+#endif
 
 static int read_data(struct dvb_ca_en50221 *ca, int slot, u8 *ebuf, int ecount);
 
