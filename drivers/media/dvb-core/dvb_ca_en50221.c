@@ -722,6 +722,7 @@ static int dvb_ca_en50221_read_data(struct dvb_ca_private *ca, int slot,
 			if (bytes_read > ecount) {
 				pr_err("dvb_ca adapter %d: CAM tried to send a buffer larger than the ecount size!\n",
 				       ca->dvbdev->adapter->num);
+				sl->slot_state = DVB_CA_SLOTSTATE_LINKINIT;
 				status = -EIO;
 				goto exit;
 			}
