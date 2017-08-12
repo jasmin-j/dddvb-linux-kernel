@@ -886,6 +886,8 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot,
 	if (status < 0)
 		goto exit;
 	if (status & STATUSREG_WE) {
+		pr_err("dvb_ca adapter %d: CAM write error\n",
+		       ca->dvbdev->adapter->num);
 		sl->slot_state = DVB_CA_SLOTSTATE_LINKINIT;
 		status = -EIO;
 		goto exit;
