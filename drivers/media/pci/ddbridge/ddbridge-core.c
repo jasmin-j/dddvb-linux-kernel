@@ -1912,7 +1912,7 @@ static int wait_ci_ready(struct ddb_ci *ci)
 			break;
 		usleep_range(1, 2);
 		if ((--count) == 0)
-			return -1;
+			return -EIO;
 	} while (1);
 	return 0;
 }
@@ -1959,7 +1959,7 @@ static int read_cam_control(struct dvb_ca_en50221 *ca,
 			break;
 		usleep_range(1, 2);
 		if ((--count) == 0)
-			return -1;
+			return -EIO;
 	} while (1);
 	return 0xff & res;
 }
