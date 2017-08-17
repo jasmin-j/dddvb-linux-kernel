@@ -2047,6 +2047,7 @@ static void ci_attach(struct ddb_port *port)
 	port->en = &ci->en;
 	ci->port = port;
 	ci->nr = port->nr - 2;
+	printk(KERN_ERR "JJJ CAM %d: INIT V4\n", ci->nr);
 }
 
 /****************************************************************************/
