@@ -2289,7 +2289,7 @@ int ddb_ports_attach(struct ddb *dev)
 	}
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
-		ret = ddb_port_attach(port);
+		ddb_port_attach(port);
 	}
 	return ret;
 }
