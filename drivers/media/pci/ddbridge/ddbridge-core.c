@@ -2215,7 +2215,8 @@ static int ddb_ci_attach(struct ddb_port *port)
 	switch (port->type) {
 	case DDB_CI_EXTERNAL_SONY:
 		cxd_cfg.bitrate = ci_bitrate;
-		port->en = cxd2099_attach(&cxd_cfg, port, &port->i2c->adap);
+		port->en = dvb_attach(cxd2099_attach, &cxd_cfg, port,
+				      &port->i2c->adap);
 		if (!port->en)
 			return -ENODEV;
 		dvb_ca_en50221_init(port->dvb[0].adap,
