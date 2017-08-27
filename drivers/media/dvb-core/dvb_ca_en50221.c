@@ -869,17 +869,21 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot,
 					    bytes_write >> 8);
 	if (status)
 		goto exit;
+
+	usleep_range(1000, 1100);
 	status = ca->pub->write_cam_control(ca->pub, slot, CTRLIF_SIZE_LOW,
 					    bytes_write & 0xff);
 	if (status)
 		goto exit;
 
 	/* send the buffer */
+	usleep_range(1000, 1100);
 	for (i = 0; i < bytes_write; i++) {
 		status = ca->pub->write_cam_control(ca->pub, slot, CTRLIF_DATA,
 						    buf[i]);
 		if (status)
 			goto exit;
+		// usleep_range(1000, 1100);
 	}
 
 	/* check for write error (WE should now be 0) */
@@ -1915,6 +1919,9 @@ int dvb_ca_en50221_init(struct dvb_adapter *dvb_adapter,
 		       ret);
 		goto unregister_device;
 	}
+	pr_err("dvb_ca adapter %d: JJJ en50221 init V4\n",
+	       ca->dvbdev->adapter->num);
+
 	return 0;
 
 unregister_device:
