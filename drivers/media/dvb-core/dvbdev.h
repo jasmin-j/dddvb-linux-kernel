@@ -147,10 +147,11 @@ struct dvb_adapter {
  * @tsout_num_entities: Number of Transport Stream output entities
  * @tsout_entity: array with MC entities associated to each TS output node
  * @tsout_pads: array with the source pads for each @tsout_entity
+ * @dev:	pointer to struct device that is associated with the dvb device
  *
  * This structure is used by the DVB core (frontend, CA, net, demux) in
  * order to create the device nodes. Usually, driver should not initialize
- * this struct diretly.
+ * this struct directly.
  */
 struct dvb_device {
 	struct list_head list_head;
@@ -183,6 +184,7 @@ struct dvb_device {
 #endif
 
 	void *priv;
+	struct device *dev;
 };
 
 /**
