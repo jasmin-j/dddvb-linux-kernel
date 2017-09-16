@@ -86,6 +86,13 @@ MODULE_PARM_DESC(cam_debug, "enable verbose debug messages");
 #define DVB_CA_SLOTSTATE_WAITFR         6
 #define DVB_CA_SLOTSTATE_LINKINIT       7
 
+enum dvb_ca_timers {
+	DVB_CA_TIM_WR_HIGH  /* wait after writing length high */
+,	DVB_CA_TIM_WR_LOW   /* wait after writing length low */
+,	DVB_CA_TIM_WR_DATA  /* wait between data bytes */
+,	DVB_CA_TIM_MAX
+};
+
 /* Information on a CA slot */
 struct dvb_ca_slot {
 	/* current state of the CAM */
@@ -117,6 +124,11 @@ struct dvb_ca_slot {
 
 	/* timer used during various states of the slot */
 	unsigned long timeout;
+};
+
+struct dvb_ca_timer {
+	unsigned long min;
+	unsigned long max;
 };
 
 /* Private CA-interface information */
@@ -161,6 +173,14 @@ struct dvb_ca_private {
 
 	/* mutex serializing ioctls */
 	struct mutex ioctl_mutex;
+
+	struct dvb_ca_timer timers[DVB_CA_TIM_MAX];
+};
+
+static const char dvb_ca_tim_names[DVB_CA_TIM_MAX][15] = {
+	"tim_wr_high"
+,	"tim_wr_low"
+,	"tim_wr_data"
 };
 
 static void dvb_ca_private_free(struct dvb_ca_private *ca)
@@ -221,6 +241,14 @@ static char *findstr(char *haystack, int hlen, char *needle, int nlen)
 	}
 
 	return NULL;
+}
+
+static void dvb_ca_sleep(struct dvb_ca_private *ca, enum dvb_ca_timers tim)
+{
+	unsigned long min = ca->timers[tim].min;
+
+	if (min)
+		usleep_range(min, ca->timers[tim].max);
 }
 
 /* ************************************************************************** */
@@ -868,10 +896,13 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot,
 					    bytes_write >> 8);
 	if (status)
 		goto exit;
+	dvb_ca_sleep(ca, DVB_CA_TIM_WR_HIGH);
+
 	status = ca->pub->write_cam_control(ca->pub, slot, CTRLIF_SIZE_LOW,
 					    bytes_write & 0xff);
 	if (status)
 		goto exit;
+	dvb_ca_sleep(ca, DVB_CA_TIM_WR_LOW);
 
 	/* send the buffer */
 	for (i = 0; i < bytes_write; i++) {
@@ -879,6 +910,7 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot,
 						    buf[i]);
 		if (status)
 			goto exit;
+		dvb_ca_sleep(ca, DVB_CA_TIM_WR_DATA);
 	}
 
 	/* check for write error (WE should now be 0) */
@@ -1832,6 +1864,97 @@ static const struct dvb_device dvbdev_ca = {
 };
 
 /* ************************************************************************** */
+/* EN50221 device attributes (SysFS) */
+
+static int dvb_ca_tim_idx(struct dvb_ca_private *ca, const char *name)
+{
+	int tim_idx;
+
+	for (tim_idx = 0; tim_idx < DVB_CA_TIM_MAX; tim_idx++) {
+		if (!strcmp(dvb_ca_tim_names[tim_idx], name))
+			return tim_idx;
+	}
+	return -1;
+}
+
+static ssize_t dvb_ca_tim_show(struct device *device,
+			       struct device_attribute *attr, char *buf)
+{
+	struct dvb_device *dvbdev = dev_get_drvdata(device);
+	struct dvb_ca_private *ca = dvbdev->priv;
+	int tim_idx = dvb_ca_tim_idx(ca, attr->attr.name);
+
+	if (tim_idx < 0)
+		return -ENXIO;
+
+	return sprintf(buf, "%ld\n", ca->timers[tim_idx].min);
+}
+
+static ssize_t dvb_ca_tim_store(struct device *device,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct dvb_device *dvbdev = dev_get_drvdata(device);
+	struct dvb_ca_private *ca = dvbdev->priv;
+	int tim_idx = dvb_ca_tim_idx(ca, attr->attr.name);
+	unsigned long min, max;
+
+	if (tim_idx < 0)
+		return -ENXIO;
+
+	if (sscanf(buf, "%lu\n", &min) != 1)
+		return -EINVAL;
+
+	/* value is in us; 100ms is a good maximum */
+	if (min > (100 * USEC_PER_MSEC))
+		return -EINVAL;
+
+	/* +10% (rounded up) */
+	max = (min * 11 + 5) / 10;
+	ca->timers[tim_idx].min = min;
+	ca->timers[tim_idx].max = max;
+
+	return count;
+}
+
+/* attribute definition with string pointer (see include/linux/sysfs.h) */
+#define DVB_CA_ATTR(_name, _mode, _show, _store) {	\
+	.attr = {.name = _name, .mode = _mode },	\
+	.show	= _show,				\
+	.store	= _store,				\
+}
+
+#define DVB_CA_ATTR_TIM(_tim_idx)					\
+	DVB_CA_ATTR(dvb_ca_tim_names[_tim_idx], 0664, dvb_ca_tim_show,	\
+		    dvb_ca_tim_store)
+
+static const struct device_attribute dvb_ca_attrs[DVB_CA_TIM_MAX] = {
+	DVB_CA_ATTR_TIM(DVB_CA_TIM_WR_HIGH)
+,	DVB_CA_ATTR_TIM(DVB_CA_TIM_WR_LOW)
+,	DVB_CA_ATTR_TIM(DVB_CA_TIM_WR_DATA)
+};
+
+static int dvb_ca_device_attrs_add(struct dvb_ca_private *ca)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(dvb_ca_attrs); i++)
+		if (device_create_file(ca->dvbdev->dev, &dvb_ca_attrs[i]))
+			goto fail;
+	return 0;
+fail:
+	return -1;
+}
+
+static void ddb_device_attrs_del(struct dvb_ca_private *ca)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(dvb_ca_attrs); i++)
+		device_remove_file(ca->dvbdev->dev, &dvb_ca_attrs[i]);
+}
+
+/* ************************************************************************** */
 /* Initialisation/shutdown functions */
 
 /**
@@ -1901,6 +2024,10 @@ int dvb_ca_en50221_init(struct dvb_adapter *dvb_adapter,
 		ret = -EINTR;
 		goto unregister_device;
 	}
+
+	if (dvb_ca_device_attrs_add(ca))
+		goto unregister_device;
+
 	mb();
 
 	/* create a kthread for monitoring this CA device */
@@ -1910,10 +2037,12 @@ int dvb_ca_en50221_init(struct dvb_adapter *dvb_adapter,
 		ret = PTR_ERR(ca->thread);
 		pr_err("dvb_ca_init: failed to start kernel_thread (%d)\n",
 		       ret);
-		goto unregister_device;
+		goto delete_attrs;
 	}
 	return 0;
 
+delete_attrs:
+	ddb_device_attrs_del(ca);
 unregister_device:
 	dvb_unregister_device(ca->dvbdev);
 free_slot_info:
@@ -1945,6 +2074,7 @@ void dvb_ca_en50221_release(struct dvb_ca_en50221 *pubca)
 	for (i = 0; i < ca->slot_count; i++)
 		dvb_ca_en50221_slot_shutdown(ca, i);
 
+	ddb_device_attrs_del(ca);
 	dvb_remove_device(ca->dvbdev);
 	dvb_ca_private_put(ca);
 	pubca->private = NULL;
